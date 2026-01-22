@@ -11,6 +11,80 @@ import type {
 } from './types';
 
 // ============================================
+// Raw API Response Types (what Laravel returns)
+// ============================================
+
+interface RawSessionEvent {
+  id: number;
+  action_type: string;
+  text_input: { raw_text: string } | null;
+  ai_parse_run: {
+    id?: number;
+    status: string;
+    started_at?: string | null;
+    completed_at?: string | null;
+    error_message?: string | null;
+    output_json: {
+      exercise?: { name: string };
+      sets?: Array<{
+        reps: number;
+        weight: number;
+        unit: string;
+        rpe?: number | null;
+      }>;
+    } | null;
+  } | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface RawWorkoutSessionDetails extends Omit<WorkoutSessionDetails, 'session_events'> {
+  session_events: RawSessionEvent[];
+}
+
+// ============================================
+// Transformer Functions
+// ============================================
+
+/**
+ * Transform raw API event to frontend SessionEvent
+ * Maps the nested Laravel model structure to the flat frontend structure
+ */
+function transformSessionEvent(raw: RawSessionEvent): SessionEvent {
+  const outputJson = raw.ai_parse_run?.output_json;
+
+  // Normalize status: backend returns 'success', frontend expects 'completed'
+  const rawStatus = raw.ai_parse_run?.status ?? 'queued';
+  const normalizedStatus = rawStatus === 'success' ? 'completed' : rawStatus;
+
+  return {
+    id: raw.id,
+    type: raw.action_type as SessionEvent['type'],
+    raw_text: raw.text_input?.raw_text ?? '',
+    status: normalizedStatus as SessionEvent['status'],
+    exercise_name: outputJson?.exercise?.name ?? null,
+    sets: outputJson?.sets?.map((s, i) => ({
+      id: i,
+      set_number: i + 1,
+      weight_kg: s.weight,
+      reps: s.reps,
+      rpe: s.rpe ?? null,
+      completed: true,
+    })) ?? null,
+    suggestions: null,
+    ai_parse_run: raw.ai_parse_run ? {
+      id: raw.ai_parse_run.id ?? 0,
+      status: normalizedStatus as 'pending' | 'processing' | 'completed' | 'failed',
+      started_at: raw.ai_parse_run.started_at ?? null,
+      completed_at: raw.ai_parse_run.completed_at ?? null,
+      error_message: raw.ai_parse_run.error_message ?? null,
+    } : null,
+    created_at: raw.created_at,
+    updated_at: raw.updated_at,
+  };
+}
+
+// ============================================
 // Sessions API Functions
 // ============================================
 
@@ -32,10 +106,16 @@ export async function getSessions(filters?: SessionFilters): Promise<PaginatedSe
 
 /**
  * Get a single session by ID with full details
+ * Transforms raw API response to match frontend types
  */
 export async function getSession(sessionId: number): Promise<WorkoutSessionDetails> {
-  const response = await apiClient.get<{ data: WorkoutSessionDetails }>(`/sessions/${sessionId}`);
-  return response.data.data;
+  const response = await apiClient.get<{ data: RawWorkoutSessionDetails }>(`/sessions/${sessionId}`);
+  const raw = response.data.data;
+
+  return {
+    ...raw,
+    session_events: raw.session_events.map(transformSessionEvent),
+  };
 }
 
 /**
@@ -77,31 +157,33 @@ export async function deleteSession(sessionId: number): Promise<void> {
 
 /**
  * Create a new event (e.g., add sets via natural language)
+ * Transforms raw API response to match frontend types
  */
 export async function createEvent(
   sessionId: number,
   data: CreateEventRequest
 ): Promise<SessionEvent> {
-  const response = await apiClient.post<{ data: SessionEvent }>(
+  const response = await apiClient.post<{ data: RawSessionEvent }>(
     `/sessions/${sessionId}/events`,
     data
   );
-  return response.data.data;
+  return transformSessionEvent(response.data.data);
 }
 
 /**
  * Update an existing event
+ * Transforms raw API response to match frontend types
  */
 export async function updateEvent(
   sessionId: number,
   eventId: number,
   data: UpdateEventRequest
 ): Promise<SessionEvent> {
-  const response = await apiClient.patch<{ data: SessionEvent }>(
+  const response = await apiClient.patch<{ data: RawSessionEvent }>(
     `/sessions/${sessionId}/events/${eventId}`,
     data
   );
-  return response.data.data;
+  return transformSessionEvent(response.data.data);
 }
 
 /**
@@ -113,17 +195,18 @@ export async function deleteEvent(sessionId: number, eventId: number): Promise<v
 
 /**
  * Submit feedback for AI suggestions (select the correct exercise)
+ * Transforms raw API response to match frontend types
  */
 export async function submitFeedback(
   sessionId: number,
   eventId: number,
   data: FeedbackRequest
 ): Promise<SessionEvent> {
-  const response = await apiClient.post<{ data: SessionEvent }>(
+  const response = await apiClient.post<{ data: RawSessionEvent }>(
     `/sessions/${sessionId}/events/${eventId}/feedback`,
     data
   );
-  return response.data.data;
+  return transformSessionEvent(response.data.data);
 }
 
 // ============================================
