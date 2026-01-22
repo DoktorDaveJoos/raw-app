@@ -1,0 +1,222 @@
+import { z } from 'zod';
+
+// ============================================
+// User
+// ============================================
+export const UserSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+  email_verified_at: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export type User = z.infer<typeof UserSchema>;
+
+// ============================================
+// Sets & Exercises
+// ============================================
+export const SetSchema = z.object({
+  id: z.number().optional(),
+  set_number: z.number(),
+  weight_kg: z.number().nullable(),
+  reps: z.number(),
+  rpe: z.number().nullable(),
+  completed: z.boolean().optional().default(true),
+});
+
+export type Set = z.infer<typeof SetSchema>;
+
+export const SessionExerciseSchema = z.object({
+  id: z.number().optional(),
+  exercise_id: z.number().optional(),
+  exercise_name: z.string(),
+  sets_count: z.number(),
+  reps_count: z.number(),
+  volume_kg: z.number().nullable(),
+});
+
+export type SessionExercise = z.infer<typeof SessionExerciseSchema>;
+
+// ============================================
+// AI Parse & Suggestions
+// ============================================
+export const SuggestionOptionSchema = z.object({
+  exercise_name: z.string(),
+  confidence: z.number().optional(),
+});
+
+export const SuggestionsSchema = z.object({
+  options: z.array(SuggestionOptionSchema),
+  selected_index: z.number().nullable(),
+});
+
+export type Suggestions = z.infer<typeof SuggestionsSchema>;
+
+export const AiParseRunSchema = z.object({
+  id: z.number(),
+  status: z.enum(['pending', 'processing', 'completed', 'failed']),
+  started_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
+  error_message: z.string().nullable(),
+});
+
+export type AiParseRun = z.infer<typeof AiParseRunSchema>;
+
+// ============================================
+// Session Events
+// ============================================
+export const SessionEventSchema = z.object({
+  id: z.number(),
+  type: z.enum(['add_sets', 'symptom', 'readiness', 'note']),
+  raw_text: z.string(),
+  status: z.enum(['queued', 'processing', 'completed', 'failed']),
+  exercise_name: z.string().nullable(),
+  sets: z.array(SetSchema).nullable(),
+  suggestions: SuggestionsSchema.nullable().optional(),
+  ai_parse_run: AiParseRunSchema.nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export type SessionEvent = z.infer<typeof SessionEventSchema>;
+
+// ============================================
+// Workout Sessions
+// ============================================
+export const WorkoutSessionStatusSchema = z.enum(['pending', 'in_progress', 'finished']);
+
+export type WorkoutSessionStatus = z.infer<typeof WorkoutSessionStatusSchema>;
+
+export const WorkoutSessionSummarySchema = z.object({
+  id: z.number(),
+  status: WorkoutSessionStatusSchema,
+  title: z.string().nullable(),
+  started_at: z.string().nullable(),
+  finished_at: z.string().nullable(),
+  volume_kg: z.number().nullable(),
+  exercises_count: z.number(),
+  sets_count: z.number(),
+  reps_count: z.number().optional(),
+  duration_seconds: z.number().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+export type WorkoutSessionSummary = z.infer<typeof WorkoutSessionSummarySchema>;
+
+export const WorkoutSessionDetailsSchema = WorkoutSessionSummarySchema.extend({
+  session_events: z.array(SessionEventSchema),
+  session_exercises: z.array(SessionExerciseSchema),
+});
+
+export type WorkoutSessionDetails = z.infer<typeof WorkoutSessionDetailsSchema>;
+
+// ============================================
+// Pagination
+// ============================================
+export const PaginationMetaSchema = z.object({
+  current_page: z.number(),
+  from: z.number().nullable(),
+  last_page: z.number(),
+  per_page: z.number(),
+  to: z.number().nullable(),
+  total: z.number(),
+});
+
+export type PaginationMeta = z.infer<typeof PaginationMetaSchema>;
+
+export const PaginationLinksSchema = z.object({
+  first: z.string().nullable(),
+  last: z.string().nullable(),
+  prev: z.string().nullable(),
+  next: z.string().nullable(),
+});
+
+export type PaginationLinks = z.infer<typeof PaginationLinksSchema>;
+
+export function createPaginatedResponseSchema<T extends z.ZodTypeAny>(itemSchema: T) {
+  return z.object({
+    data: z.array(itemSchema),
+    meta: PaginationMetaSchema.optional(),
+    links: PaginationLinksSchema.optional(),
+  });
+}
+
+export const PaginatedSessionsResponseSchema = createPaginatedResponseSchema(WorkoutSessionSummarySchema);
+
+export type PaginatedSessionsResponse = z.infer<typeof PaginatedSessionsResponseSchema>;
+
+// ============================================
+// API Request/Response Types
+// ============================================
+export interface LoginRequest {
+  email: string;
+  password: string;
+  device_name: string;
+}
+
+export interface RegisterRequest {
+  name: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+  device_name: string;
+}
+
+export interface TwoFactorRequest {
+  two_factor_token: string;
+  code?: string;
+  recovery_code?: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
+  token_type: string;
+}
+
+export interface TwoFactorRequiredResponse {
+  two_factor_required: true;
+  two_factor_token: string;
+  message: string;
+}
+
+export interface TokenResponse {
+  token: string;
+}
+
+export interface CreateEventRequest {
+  raw_text: string;
+  locale?: string;
+}
+
+export interface UpdateEventRequest {
+  exercise_name?: string;
+  sets?: Partial<Set>[];
+}
+
+export interface FeedbackRequest {
+  selected_option_index: number;
+}
+
+export interface SessionFilters {
+  status?: WorkoutSessionStatus;
+  date_from?: string;
+  date_to?: string;
+  page?: number;
+  per_page?: number;
+}
+
+// ============================================
+// API Error
+// ============================================
+export interface ApiError {
+  message: string;
+  errors?: Record<string, string[]>;
+}
+
+export interface ValidationError extends ApiError {
+  errors: Record<string, string[]>;
+}
