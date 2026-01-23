@@ -47,15 +47,35 @@ interface RawWorkoutSessionDetails extends Omit<WorkoutSessionDetails, 'session_
 // ============================================
 
 /**
+ * Normalize event status from backend variants to frontend status type
+ * Handles all known backend status variants and defaults unknown statuses to 'completed'
+ * to ensure events always remain visible
+ */
+function normalizeEventStatus(rawStatus: string | null | undefined): SessionEvent['status'] {
+  if (!rawStatus) return 'queued';
+
+  const statusLower = rawStatus.toLowerCase();
+
+  // Map all known backend status variants
+  if (statusLower === 'queued' || statusLower === 'pending') return 'queued';
+  if (statusLower === 'processing' || statusLower === 'running' || statusLower === 'in_progress') return 'processing';
+  if (statusLower === 'completed' || statusLower === 'success' || statusLower === 'done') return 'completed';
+  if (statusLower === 'failed' || statusLower === 'error') return 'failed';
+
+  // Unknown status - default to 'completed' so event is visible
+  console.warn(`[normalizeEventStatus] Unknown status: "${rawStatus}", defaulting to 'completed'`);
+  return 'completed';
+}
+
+/**
  * Transform raw API event to frontend SessionEvent
  * Maps the nested Laravel model structure to the flat frontend structure
  */
 function transformSessionEvent(raw: RawSessionEvent): SessionEvent {
   const outputJson = raw.ai_parse_run?.output_json;
 
-  // Normalize status: backend returns 'success', frontend expects 'completed'
-  const rawStatus = raw.ai_parse_run?.status ?? 'queued';
-  const normalizedStatus = rawStatus === 'success' ? 'completed' : rawStatus;
+  // Normalize status using comprehensive mapping
+  const normalizedStatus = normalizeEventStatus(raw.ai_parse_run?.status);
 
   return {
     id: raw.id,

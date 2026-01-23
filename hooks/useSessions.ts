@@ -31,12 +31,33 @@ export function useSessions(options: UseSessionsOptions = {}) {
 
 /**
  * Hook to fetch a single session by ID
+ * Uses structuralSharing to preserve optimistic events during polling
  */
 export function useSession(sessionId: number | undefined) {
   return useQuery({
     queryKey: queryKeys.sessions.detail(sessionId!),
     queryFn: () => getSession(sessionId!),
     enabled: !!sessionId,
+    structuralSharing: (oldData, newData) => {
+      if (!oldData || !newData) return newData;
+
+      const oldSession = oldData as WorkoutSessionDetails;
+      const newSession = newData as WorkoutSessionDetails;
+
+      // Preserve optimistic events (negative IDs) not yet confirmed by server
+      const serverIds = new Set(newSession.session_events.map(e => e.id));
+      const optimisticEvents = oldSession.session_events?.filter(
+        e => e.id < 0 && !serverIds.has(e.id)
+      ) ?? [];
+
+      // If no optimistic events to preserve, return new data as-is
+      if (optimisticEvents.length === 0) return newData;
+
+      return {
+        ...newSession,
+        session_events: [...newSession.session_events, ...optimisticEvents],
+      };
+    },
   });
 }
 
@@ -126,31 +147,60 @@ export function useCreateEvent(sessionId: number) {
         queryKeys.sessions.detail(sessionId)
       );
 
-      // Optimistically add a processing event
-      if (previousSession) {
-        const optimisticEvent: SessionEvent = {
-          id: -Date.now(), // Temporary negative ID
-          type: 'add_sets',
-          raw_text: rawText,
-          status: 'processing',
-          exercise_name: null,
-          sets: null,
-          suggestions: null,
-          ai_parse_run: null,
-          created_at: undefined,
-          updated_at: undefined,
-        };
+      // Generate a consistent optimistic ID for this mutation
+      const optimisticId = -Date.now();
 
+      // Create the optimistic event
+      const optimisticEvent: SessionEvent = {
+        id: optimisticId,
+        type: 'add_sets',
+        raw_text: rawText,
+        status: 'processing',
+        exercise_name: null,
+        sets: null,
+        suggestions: null,
+        ai_parse_run: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (previousSession) {
+        // Normal case: update existing cache (append to end for chronological order)
         queryClient.setQueryData<WorkoutSessionDetails>(
           queryKeys.sessions.detail(sessionId),
           {
             ...previousSession,
-            session_events: [optimisticEvent, ...(previousSession.session_events ?? [])],
+            session_events: [...(previousSession.session_events ?? []), optimisticEvent],
           }
         );
+      } else {
+        // Cache miss: this shouldn't happen if the screen is loaded, but log it for debugging
+        console.warn('[useCreateEvent] Session not in cache, will add event on success');
       }
 
-      return { previousSession };
+      return { previousSession, optimisticId };
+    },
+    onSuccess: (newEvent, rawText, context) => {
+      // Replace the optimistic event with the real event from the API
+      const currentSession = queryClient.getQueryData<WorkoutSessionDetails>(
+        queryKeys.sessions.detail(sessionId)
+      );
+
+      if (currentSession) {
+        queryClient.setQueryData<WorkoutSessionDetails>(
+          queryKeys.sessions.detail(sessionId),
+          {
+            ...currentSession,
+            session_events: currentSession.session_events?.map((event) =>
+              // Match by the optimistic ID we stored in context
+              event.id === context?.optimisticId ? newEvent : event
+            ) ?? [newEvent],
+          }
+        );
+      } else {
+        // Session wasn't in cache - refetch to get everything
+        queryClient.invalidateQueries({ queryKey: queryKeys.sessions.detail(sessionId) });
+      }
     },
     onError: (err, rawText, context) => {
       // Roll back on error
@@ -161,9 +211,7 @@ export function useCreateEvent(sessionId: number) {
         );
       }
     },
-    onSettled: () => {
-      // Refetch to get the real data
-      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.detail(sessionId) });
-    },
+    // REMOVED onSettled - it causes race conditions by invalidating too soon
+    // The polling mechanism in the logging screen handles ongoing updates
   });
 }
