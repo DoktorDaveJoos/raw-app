@@ -44,11 +44,11 @@ export default function LoggingScreen() {
 
   // Timer for session duration
   useEffect(() => {
-    if (!session?.started_at) return;
+    const startTime = session?.started_at || session?.created_at;
+    if (!startTime) return;
 
-    // Calculate initial elapsed time
     const updateElapsed = () => {
-      const elapsed = calculateDuration(session.started_at, null);
+      const elapsed = calculateDuration(startTime, null);
       setElapsedSeconds(elapsed);
     };
 
@@ -56,7 +56,7 @@ export default function LoggingScreen() {
     const interval = setInterval(updateElapsed, 1000);
 
     return () => clearInterval(interval);
-  }, [session?.started_at]);
+  }, [session?.started_at, session?.created_at]);
 
   // Extract recent exercises from completed events for chips
   const recentExercises = useMemo(() => {
@@ -290,9 +290,14 @@ export default function LoggingScreen() {
         >
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </Pressable>
-        <Text className="text-white font-bold text-base">
-          {session?.title || "Today's Session"}
-        </Text>
+        <View className="items-center">
+          <Text className="text-white font-bold text-base">
+            {session?.title || "Today's Session"}
+          </Text>
+          <Text className="text-neutral-400 text-xs">
+            {formatDuration(elapsedSeconds)}
+          </Text>
+        </View>
         <Pressable
           onPress={handleFinish}
           disabled={finishSession.isPending}
