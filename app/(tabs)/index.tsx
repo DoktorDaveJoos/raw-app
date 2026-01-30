@@ -36,6 +36,7 @@ export default function HomeScreen() {
   ];
 
   const handleStartWorkout = async () => {
+    if (createAndStart.isPending) return;
     if (currentSession) {
       // Resume existing session
       router.push(`/(tabs)/log/logging/${currentSession.id}`);
@@ -51,6 +52,7 @@ export default function HomeScreen() {
   };
 
   const handleStartFreeWorkout = async () => {
+    if (createAndStart.isPending) return;
     try {
       const session = await createAndStart.mutateAsync('Free Training');
       router.push(`/(tabs)/log/logging/${session.id}`);

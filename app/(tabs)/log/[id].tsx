@@ -12,7 +12,8 @@ import type { SessionExercise } from '@/lib/api';
 
 export default function SessionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const sessionId = parseInt(id, 10);
+  const parsed = parseInt(id, 10);
+  const sessionId = isNaN(parsed) ? undefined : parsed;
 
   const { data: session, isLoading, isError, refetch } = useSession(sessionId);
 
@@ -77,6 +78,17 @@ export default function SessionDetailsScreen() {
   const handleBack = () => {
     router.back();
   };
+
+  if (!sessionId) {
+    return (
+      <SafeAreaView className="flex-1 bg-background items-center justify-center">
+        <Text className="text-neutral-400">Invalid session</Text>
+        <Pressable onPress={() => router.back()}>
+          <Text className="text-primary mt-4">Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   const handleShare = () => {
     // TODO: Implement share functionality

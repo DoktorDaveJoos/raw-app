@@ -34,7 +34,12 @@ export async function clearToken(): Promise<void> {
 // ============================================
 // API Client
 // ============================================
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'https://raw.test';
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+if (!API_URL) {
+  throw new Error(
+    'EXPO_PUBLIC_API_URL is not set. Add it to your .env file.'
+  );
+}
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: `${API_URL}/api`,
@@ -68,7 +73,7 @@ export type AuthErrorHandler = () => void;
 
 let onAuthError: AuthErrorHandler | null = null;
 
-export function setAuthErrorHandler(handler: AuthErrorHandler) {
+export function setAuthErrorHandler(handler: AuthErrorHandler | null) {
   onAuthError = handler;
 }
 

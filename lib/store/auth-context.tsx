@@ -146,6 +146,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAuthenticated: false,
       });
     });
+    return () => setAuthErrorHandler(null);
   }, []);
 
   // Check auth on mount

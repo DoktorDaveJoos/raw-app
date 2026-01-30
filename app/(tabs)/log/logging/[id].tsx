@@ -13,7 +13,8 @@ import type { SessionEvent } from '@/lib/api';
 
 export default function LoggingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const sessionId = parseInt(id, 10);
+  const parsed = parseInt(id, 10);
+  const sessionId = isNaN(parsed) ? undefined : parsed;
 
   const [inputText, setInputText] = useState('');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -21,7 +22,14 @@ export default function LoggingScreen() {
   // Fetch session data
   const { data: session, isLoading, isError, refetch } = useSession(sessionId);
   const finishSession = useFinishSession();
-  const createEvent = useCreateEvent(sessionId);
+  const createEvent = useCreateEvent(sessionId ?? 0);
+
+  // Stable refs for refetch and createEvent to avoid tearing down intervals/callbacks
+  const refetchRef = useRef(refetch);
+  refetchRef.current = refetch;
+
+  const createEventRef = useRef(createEvent);
+  createEventRef.current = createEvent;
 
   // Check if there are any processing events
   const hasProcessingEvents = useMemo(() => {
@@ -36,11 +44,11 @@ export default function LoggingScreen() {
     if (!hasProcessingEvents || createEvent.isPending) return;
 
     const interval = setInterval(() => {
-      refetch();
+      refetchRef.current();
     }, 3000); // Poll every 3 seconds
 
     return () => clearInterval(interval);
-  }, [hasProcessingEvents, createEvent.isPending, refetch]);
+  }, [hasProcessingEvents, createEvent.isPending]);
 
   // Timer for session duration
   useEffect(() => {
@@ -106,25 +114,23 @@ export default function LoggingScreen() {
     prevEventCount.current = sortedEvents.length;
   }, [sortedEvents.length]);
 
-  const handleSend = useCallback(
-    async (text: string) => {
-      if (!text.trim()) return;
+  const handleSend = useCallback(async (text: string) => {
+    if (!text.trim()) return;
 
-      try {
-        await createEvent.mutateAsync(text.trim());
-        setInputText('');
-      } catch (error) {
-        console.error('Failed to create event:', error);
-      }
-    },
-    [createEvent]
-  );
+    try {
+      await createEventRef.current.mutateAsync(text.trim());
+      setInputText('');
+    } catch (error) {
+      console.error('Failed to create event:', error);
+    }
+  }, []);
 
   const handleChipPress = useCallback((chip: string) => {
     setInputText((prev) => (prev ? `${prev} ${chip}` : chip));
   }, []);
 
   const handleFinish = useCallback(async () => {
+    if (!sessionId) return;
     try {
       await finishSession.mutateAsync(sessionId);
       router.replace(`/(tabs)/log/${sessionId}`);
@@ -136,6 +142,17 @@ export default function LoggingScreen() {
   const handleBack = useCallback(() => {
     router.back();
   }, []);
+
+  if (!sessionId) {
+    return (
+      <SafeAreaView className="flex-1 bg-background items-center justify-center">
+        <Text className="text-neutral-400">Invalid session</Text>
+        <Pressable onPress={() => router.back()}>
+          <Text className="text-primary mt-4">Go back</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
 
   // Format volume for display
   const formatVolume = (kg: number): string => {
