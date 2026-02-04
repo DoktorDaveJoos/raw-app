@@ -45,6 +45,7 @@ export {
   submitFeedback,
   getCurrentSession,
   createAndStartSession,
+  getWeeklyStats,
 } from './sessions';
 
 // ============================================

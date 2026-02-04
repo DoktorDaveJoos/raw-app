@@ -73,7 +73,7 @@ export function ProcessingCard({ rawText, expectedSets = 3 }: ProcessingCardProp
                 <MaterialIcons name="sync" size={18} color={colors.primary} />
               </Animated.View>
             </View>
-            <Text className="text-white/90 text-lg font-bold tracking-tight ml-3">
+            <Text className="font-sans-bold text-white/90 text-lg tracking-tight ml-3">
               Processing...
             </Text>
           </View>
@@ -87,7 +87,7 @@ export function ProcessingCard({ rawText, expectedSets = 3 }: ProcessingCardProp
               />
               <View className="relative rounded-full h-2 w-2 bg-primary" />
             </View>
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-primary">
+            <Text className="font-sans-bold text-[10px] uppercase tracking-wider text-primary">
               AI Parsing
             </Text>
           </View>
@@ -96,7 +96,7 @@ export function ProcessingCard({ rawText, expectedSets = 3 }: ProcessingCardProp
         {/* Raw input display */}
         <View className="flex-row items-center p-4 rounded-xl bg-white/5 border border-white/5 mb-2 overflow-hidden">
           <MaterialIcons name="short-text" size={20} color={colors.textMuted} />
-          <Text className="text-xl font-medium text-white leading-snug tracking-tight ml-4">
+          <Text className="font-sans-medium text-xl text-white leading-snug tracking-tight ml-4">
             {rawText}
           </Text>
         </View>

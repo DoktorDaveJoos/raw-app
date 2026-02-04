@@ -63,8 +63,8 @@ export default function LoginScreen() {
             <View className="h-20 w-20 bg-primary/20 rounded-2xl items-center justify-center mb-4">
               <MaterialIcons name="fitness-center" size={40} color={colors.primary} />
             </View>
-            <Text className="text-4xl font-bold text-white">Raw</Text>
-            <Text className="text-neutral-400 text-center mt-2">
+            <Text className="font-sans-bold text-4xl text-white">Raw</Text>
+            <Text className="font-sans text-neutral-400 text-center mt-2">
               AI-Powered Workout Logging
             </Text>
           </View>
@@ -73,13 +73,13 @@ export default function LoginScreen() {
           <View>
             {/* Email Input */}
             <View className="mb-4">
-              <Text className="text-neutral-400 text-sm mb-2 ml-1">Email</Text>
+              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Email</Text>
               <View className="flex-row items-center bg-surface border border-white/10 rounded-xl overflow-hidden">
                 <View className="pl-4">
                   <MaterialIcons name="email" size={20} color={colors.textDim} />
                 </View>
                 <TextInput
-                  className="flex-1 px-3 py-4 text-white"
+                  className="font-sans flex-1 px-3 py-4 text-white"
                   placeholder="you@example.com"
                   placeholderTextColor={colors.textDim}
                   keyboardType="email-address"
@@ -94,13 +94,13 @@ export default function LoginScreen() {
 
             {/* Password Input */}
             <View className="mb-4">
-              <Text className="text-neutral-400 text-sm mb-2 ml-1">Password</Text>
+              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Password</Text>
               <View className="flex-row items-center bg-surface border border-white/10 rounded-xl overflow-hidden">
                 <View className="pl-4">
                   <MaterialIcons name="lock" size={20} color={colors.textDim} />
                 </View>
                 <TextInput
-                  className="flex-1 px-3 py-4 text-white"
+                  className="font-sans flex-1 px-3 py-4 text-white"
                   placeholder="Enter your password"
                   placeholderTextColor={colors.textDim}
                   secureTextEntry={!showPassword}
@@ -125,7 +125,7 @@ export default function LoginScreen() {
             {error && (
               <View className="flex-row items-center bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
                 <MaterialIcons name="error-outline" size={18} color="#ef4444" />
-                <Text className="text-red-400 text-sm ml-2 flex-1">{error}</Text>
+                <Text className="font-sans text-red-400 text-sm ml-2 flex-1">{error}</Text>
               </View>
             )}
 
@@ -144,16 +144,16 @@ export default function LoginScreen() {
               {isLoading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text className="text-white font-semibold text-base">Log In</Text>
+                <Text className="font-sans-semibold text-white text-base">Log In</Text>
               )}
             </Pressable>
 
             {/* Register Link */}
             <View className="flex-row justify-center mt-8">
-              <Text className="text-neutral-400">Don't have an account? </Text>
+              <Text className="font-sans text-neutral-400">Don't have an account? </Text>
               <Link href="/(auth)/register" asChild>
                 <Pressable>
-                  <Text className="text-primary font-medium">Register</Text>
+                  <Text className="font-sans-medium text-primary">Register</Text>
                 </Pressable>
               </Link>
             </View>

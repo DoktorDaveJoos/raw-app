@@ -230,6 +230,31 @@ export async function submitFeedback(
 }
 
 // ============================================
+// Weekly Stats
+// ============================================
+
+interface WeeklyStatsResponse {
+  volume_kg: number;
+  volume_lb: number;
+  workouts_count: number;
+  duration_seconds: number;
+  duration_hours: number;
+  avg_rpe: number;
+  sets_count: number;
+  reps_count: number;
+  week_start: string;
+  week_end: string;
+}
+
+/**
+ * Get weekly stats from the API
+ */
+export async function getWeeklyStats(): Promise<WeeklyStatsResponse> {
+  const response = await apiClient.get<{ data: WeeklyStatsResponse }>('/weekly-stats');
+  return response.data.data;
+}
+
+// ============================================
 // Helper Functions
 // ============================================
 

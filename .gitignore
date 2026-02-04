@@ -41,3 +41,9 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Visual testing output
+e2e/output/
+test-results/
+playwright-report/
+playwright/.cache/

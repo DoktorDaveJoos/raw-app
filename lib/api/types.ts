@@ -69,9 +69,9 @@ export type AiParseRun = z.infer<typeof AiParseRunSchema>;
 // ============================================
 export const SessionEventSchema = z.object({
   id: z.number(),
-  type: z.enum(['add_sets', 'symptom', 'readiness', 'note']),
+  type: z.string(), // Allow any string - action_type can be "unknown" or other values
   raw_text: z.string(),
-  status: z.enum(['queued', 'processing', 'completed', 'failed']),
+  status: z.enum(['queued', 'processing', 'completed', 'failed', 'success']), // Add 'success' status
   exercise_name: z.string().nullable(),
   sets: z.array(SetSchema).nullable(),
   suggestions: SuggestionsSchema.nullable().optional(),

@@ -82,9 +82,9 @@ export default function SessionDetailsScreen() {
   if (!sessionId) {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="text-neutral-400">Invalid session</Text>
+        <Text className="font-sans text-neutral-400">Invalid session</Text>
         <Pressable onPress={() => router.back()}>
-          <Text className="text-primary mt-4">Go back</Text>
+          <Text className="font-sans text-primary mt-4">Go back</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -150,20 +150,20 @@ export default function SessionDetailsScreen() {
           <Pressable onPress={handleBack} className="p-2">
             <MaterialIcons name="arrow-back" size={24} color="white" />
           </Pressable>
-          <Text className="flex-1 text-white font-semibold text-lg text-center">Session</Text>
+          <Text className="font-sans-semibold flex-1 text-white text-lg text-center">Session</Text>
           <View className="p-2 w-10" />
         </View>
         <View className="flex-1 items-center justify-center px-6">
           <MaterialIcons name="error-outline" size={48} color="#ef4444" />
-          <Text className="text-neutral-400 text-base mt-4">Failed to load session</Text>
-          <Text className="text-neutral-600 text-sm mt-1 text-center">
+          <Text className="font-sans text-neutral-400 text-base mt-4">Failed to load session</Text>
+          <Text className="font-sans text-neutral-600 text-sm mt-1 text-center">
             Check your connection and try again
           </Text>
           <Pressable
             onPress={() => refetch()}
             className="mt-6 px-6 py-3 bg-surface border border-white/10 rounded-xl active:bg-surface-hover"
           >
-            <Text className="text-white font-medium">Retry</Text>
+            <Text className="font-sans-medium text-white">Retry</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -174,12 +174,12 @@ export default function SessionDetailsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background items-center justify-center" edges={['top']}>
         <MaterialIcons name="error-outline" size={48} color={colors.textDim} />
-        <Text className="text-neutral-400 text-base mt-4">Session not found</Text>
+        <Text className="font-sans text-neutral-400 text-base mt-4">Session not found</Text>
         <Pressable
           onPress={handleBack}
           className="mt-4 px-4 py-2 bg-surface rounded-lg"
         >
-          <Text className="text-white">Go Back</Text>
+          <Text className="font-sans text-white">Go Back</Text>
         </Pressable>
       </SafeAreaView>
     );
@@ -193,10 +193,10 @@ export default function SessionDetailsScreen() {
           <MaterialIcons name="arrow-back" size={24} color="white" />
         </Pressable>
         <View className="flex-1 items-center">
-          <Text className="text-white font-semibold text-lg" numberOfLines={1}>
+          <Text className="font-sans-semibold text-white text-lg" numberOfLines={1}>
             {session.title || 'Workout Session'}
           </Text>
-          <Text className="text-neutral-500 text-sm">{dateTimeDisplay}</Text>
+          <Text className="font-sans text-neutral-500 text-sm">{dateTimeDisplay}</Text>
         </View>
         <Pressable onPress={handleShare} className="p-2">
           <MaterialIcons name="share" size={24} color={colors.textMuted} />
@@ -220,18 +220,18 @@ export default function SessionDetailsScreen() {
 
         {/* Top Exercises */}
         <View className="px-4 mt-4">
-          <Text className="text-white font-semibold text-lg mb-4">Top Exercises</Text>
+          <Text className="font-sans-semibold text-white text-lg mb-4">Top Exercises</Text>
           <TopExercisesTable exercises={exerciseSummaries} />
         </View>
 
         {/* Event Log */}
         <View className="px-4 mt-6 pb-8">
-          <Text className="text-white font-semibold text-lg mb-4">Event Log</Text>
+          <Text className="font-sans-semibold text-white text-lg mb-4">Event Log</Text>
 
           {completedEvents.length === 0 ? (
             <View className="bg-surface rounded-2xl border border-white/5 px-4 py-8 items-center">
               <MaterialIcons name="history" size={32} color={colors.textDim} />
-              <Text className="text-neutral-500 text-sm mt-2">No events recorded</Text>
+              <Text className="font-sans text-neutral-500 text-sm mt-2">No events recorded</Text>
             </View>
           ) : (
             completedEvents.map((event) => (
@@ -260,10 +260,10 @@ interface StatCardProps {
 function StatCard({ label, value, suffix }: StatCardProps) {
   return (
     <View className="bg-surface rounded-2xl px-4 py-3 min-w-[100px] border border-white/5">
-      <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-1">{label}</Text>
+      <Text className="font-sans text-neutral-500 text-xs uppercase tracking-wider mb-1">{label}</Text>
       <View className="flex-row items-baseline">
-        <Text className="text-white text-2xl font-bold">{value}</Text>
-        {suffix && <Text className="text-neutral-500 text-sm ml-1">{suffix}</Text>}
+        <Text className="font-sans-bold text-white text-2xl">{value}</Text>
+        {suffix && <Text className="font-sans text-neutral-500 text-sm ml-1">{suffix}</Text>}
       </View>
     </View>
   );

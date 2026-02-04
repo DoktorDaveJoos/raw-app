@@ -71,10 +71,10 @@ export default function TwoFactorScreen() {
           <View className="h-20 w-20 bg-primary/20 rounded-2xl items-center justify-center mb-4">
             <MaterialIcons name="security" size={40} color={colors.primary} />
           </View>
-          <Text className="text-2xl font-bold text-white text-center">
+          <Text className="font-sans-bold text-2xl text-white text-center">
             Two-Factor Authentication
           </Text>
-          <Text className="text-neutral-400 text-center mt-2 px-4">
+          <Text className="font-sans text-neutral-400 text-center mt-2 px-4">
             Enter the 6-digit code from your authenticator app
           </Text>
         </View>
@@ -83,7 +83,7 @@ export default function TwoFactorScreen() {
         <View>
           {/* Code Input */}
           <View className="mb-4">
-            <Text className="text-neutral-400 text-sm mb-2 ml-1 text-center">
+            <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1 text-center">
               Verification Code
             </Text>
             <View className="flex-row items-center bg-surface border border-white/10 rounded-xl overflow-hidden">
@@ -108,7 +108,7 @@ export default function TwoFactorScreen() {
           {error && (
             <View className="flex-row items-center bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
               <MaterialIcons name="error-outline" size={18} color="#ef4444" />
-              <Text className="text-red-400 text-sm ml-2 flex-1 text-center">{error}</Text>
+              <Text className="font-sans text-red-400 text-sm ml-2 flex-1 text-center">{error}</Text>
             </View>
           )}
 
@@ -129,7 +129,7 @@ export default function TwoFactorScreen() {
             {isLoading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text className="text-white font-semibold text-base">Verify</Text>
+              <Text className="font-sans-semibold text-white text-base">Verify</Text>
             )}
           </Pressable>
 
@@ -141,7 +141,7 @@ export default function TwoFactorScreen() {
               console.log('Use recovery code');
             }}
           >
-            <Text className="text-neutral-500 text-sm">Use a recovery code instead</Text>
+            <Text className="font-sans text-neutral-500 text-sm">Use a recovery code instead</Text>
           </Pressable>
 
           {/* Back to Login */}
@@ -151,7 +151,7 @@ export default function TwoFactorScreen() {
           >
             <View className="flex-row items-center">
               <MaterialIcons name="arrow-back" size={16} color={colors.textMuted} />
-              <Text className="text-neutral-400 ml-1">Back to Login</Text>
+              <Text className="font-sans text-neutral-400 ml-1">Back to Login</Text>
             </View>
           </Pressable>
         </View>

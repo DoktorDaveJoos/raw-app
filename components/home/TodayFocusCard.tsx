@@ -78,18 +78,18 @@ export function TodayFocusCard({
               className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5"
               style={pulseStyle}
             />
-            <Text className="text-[10px] font-bold uppercase tracking-wide text-primary">
+            <Text className="font-sans-bold text-[10px] uppercase tracking-wide text-primary">
               {category}
             </Text>
           </View>
 
           {/* Title */}
-          <Text className="text-2xl font-bold text-white leading-tight">
+          <Text className="font-sans-bold text-2xl text-white leading-tight">
             {title}
           </Text>
 
           {/* Duration & Intensity */}
-          <Text className="text-sm text-neutral-400 mt-1">
+          <Text className="font-sans text-sm text-neutral-400 mt-1">
             {duration} • {intensity}
           </Text>
         </View>
@@ -114,7 +114,7 @@ export function TodayFocusCard({
 
         {remainingExercises > 0 && (
           <View className="items-center pt-1">
-            <Text className="text-[10px] font-bold uppercase tracking-widest text-neutral-600">
+            <Text className="font-sans-bold text-[10px] uppercase tracking-widest text-neutral-600">
               + {remainingExercises} more exercises
             </Text>
           </View>
@@ -134,7 +134,7 @@ export function TodayFocusCard({
           onPress={onStartWorkout}
         >
           <MaterialIcons name="play-arrow" size={24} color="white" />
-          <Text className="text-white font-bold ml-2">
+          <Text className="font-sans-bold text-white ml-2">
             {isResuming ? 'Resume Workout' : 'Start Workout'}
           </Text>
         </Pressable>
@@ -144,7 +144,7 @@ export function TodayFocusCard({
           onPress={onStartFreeWorkout}
         >
           <MaterialIcons name="directions-run" size={20} color={colors.textMuted} />
-          <Text className="text-neutral-400 font-bold ml-2">
+          <Text className="font-sans-bold text-neutral-400 ml-2">
             Start Free Workout
           </Text>
         </Pressable>
@@ -165,11 +165,11 @@ function ExerciseRow({ number, name, sets, reps }: ExerciseRowProps) {
     <View className="flex-row items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
       <View className="flex-row items-center">
         <View className="h-6 w-6 rounded bg-white/10 items-center justify-center mr-3">
-          <Text className="text-[10px] font-bold text-neutral-400">
+          <Text className="font-sans-bold text-[10px] text-neutral-400">
             {number}
           </Text>
         </View>
-        <Text className="text-sm font-medium text-white">{name}</Text>
+        <Text className="font-sans-medium text-sm text-white">{name}</Text>
       </View>
       <Text className="text-xs font-mono text-neutral-400">
         {sets} x {reps}
