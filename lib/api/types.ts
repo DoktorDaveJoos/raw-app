@@ -23,6 +23,7 @@ export const SetSchema = z.object({
   weight_kg: z.number().nullable(),
   reps: z.number(),
   rpe: z.number().nullable(),
+  unit: z.string().default('kg'),
   completed: z.boolean().optional().default(true),
 });
 
@@ -45,6 +46,7 @@ export type SessionExercise = z.infer<typeof SessionExerciseSchema>;
 export const SuggestionOptionSchema = z.object({
   exercise_name: z.string(),
   confidence: z.number().optional(),
+  label: z.string().optional(),
 });
 
 export const SuggestionsSchema = z.object({
@@ -53,6 +55,19 @@ export const SuggestionsSchema = z.object({
 });
 
 export type Suggestions = z.infer<typeof SuggestionsSchema>;
+
+export const ClarificationSchema = z.object({
+  type: z.enum(['ambiguity', 'missing_info']),
+  message: z.string(),
+  options: z.array(z.object({
+    label: z.string(),
+    payload: z.record(z.string(), z.unknown()),
+  })).optional().default([]),
+  missing_field: z.enum(['reps', 'weight', 'set_count']).nullable().optional(),
+  partial_payload: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+
+export type Clarification = z.infer<typeof ClarificationSchema>;
 
 export const AiParseRunSchema = z.object({
   id: z.number(),
@@ -67,15 +82,40 @@ export type AiParseRun = z.infer<typeof AiParseRunSchema>;
 // ============================================
 // Session Events
 // ============================================
+export const SymptomSchema = z.object({
+  body_part: z.string(),
+  symptom_type: z.string().optional(),
+});
+
+export type Symptom = z.infer<typeof SymptomSchema>;
+
+export const ReadinessSchema = z.object({
+  signal_type: z.string(),
+  value_text: z.string().optional(),
+  value_score: z.number().optional(),
+});
+
+export type Readiness = z.infer<typeof ReadinessSchema>;
+
+export const NoteSchema = z.object({
+  text: z.string(),
+});
+
+export type Note = z.infer<typeof NoteSchema>;
+
 export const SessionEventSchema = z.object({
   id: z.number(),
   type: z.string(), // Allow any string - action_type can be "unknown" or other values
   raw_text: z.string(),
-  status: z.enum(['queued', 'processing', 'completed', 'failed', 'success']), // Add 'success' status
+  status: z.enum(['queued', 'processing', 'completed', 'failed', 'success', 'needs_clarification']),
   exercise_name: z.string().nullable(),
   sets: z.array(SetSchema).nullable(),
   suggestions: SuggestionsSchema.nullable().optional(),
+  clarification: ClarificationSchema.nullable().optional(),
   ai_parse_run: AiParseRunSchema.nullable().optional(),
+  symptom: SymptomSchema.nullable().optional(),
+  readiness: ReadinessSchema.nullable().optional(),
+  note: NoteSchema.nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -199,6 +239,14 @@ export interface UpdateEventRequest {
 
 export interface FeedbackRequest {
   selected_option_index: number;
+  feedback_type: 'exercise' | 'unit' | 'structure' | 'note';
+}
+
+export interface ClarificationRequest {
+  response_type: 'select_option' | 'provide_value' | 'edit_text';
+  selected_option_index?: number;
+  provided_value?: { weight?: number; reps?: number; set_count?: number };
+  edited_text?: string;
 }
 
 export interface SessionFilters {

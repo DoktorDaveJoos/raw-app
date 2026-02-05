@@ -9,6 +9,7 @@ export {
   useCreateAndStartSession,
   useCreateEvent,
   useSubmitFeedback,
+  useSubmitClarification,
 } from './useSessions';
 
 // Stats hooks

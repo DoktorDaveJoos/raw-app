@@ -43,6 +43,7 @@ export {
   updateEvent,
   deleteEvent,
   submitFeedback,
+  submitClarification,
   getCurrentSession,
   createAndStartSession,
   getWeeklyStats,

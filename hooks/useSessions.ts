@@ -9,6 +9,7 @@ import {
   createAndStartSession,
   createEvent,
   submitFeedback,
+  submitClarification,
 } from '@/lib/api';
 import { queryKeys, invalidateSessions, invalidateSession } from '@/lib/store';
 import type { WorkoutSessionSummary, WorkoutSessionDetails, SessionEvent } from '@/lib/api';
@@ -248,8 +249,47 @@ export function useSubmitFeedback(sessionId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ eventId, selectedIndex }: { eventId: number; selectedIndex: number }) =>
-      submitFeedback(sessionId, eventId, { selected_option_index: selectedIndex }),
+    mutationFn: ({ eventId, selectedIndex, feedbackType = 'exercise' }: { eventId: number; selectedIndex: number; feedbackType?: 'exercise' | 'unit' | 'structure' | 'note' }) =>
+      submitFeedback(sessionId, eventId, { selected_option_index: selectedIndex, feedback_type: feedbackType }),
+    onSuccess: (updatedEvent) => {
+      const session = queryClient.getQueryData<WorkoutSessionDetails>(
+        queryKeys.sessions.detail(sessionId)
+      );
+      if (session) {
+        queryClient.setQueryData<WorkoutSessionDetails>(
+          queryKeys.sessions.detail(sessionId),
+          {
+            ...session,
+            session_events: session.session_events.map((e) =>
+              e.id === updatedEvent.id ? updatedEvent : e
+            ),
+          }
+        );
+      }
+    },
+  });
+}
+
+/**
+ * Hook to submit clarification response (provide missing value) for an event
+ */
+export function useSubmitClarification(sessionId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      field,
+      value,
+    }: {
+      eventId: number;
+      field: 'reps' | 'weight' | 'set_count';
+      value: number;
+    }) =>
+      submitClarification(sessionId, eventId, {
+        response_type: 'provide_value',
+        provided_value: { [field]: value },
+      }),
     onSuccess: (updatedEvent) => {
       const session = queryClient.getQueryData<WorkoutSessionDetails>(
         queryKeys.sessions.detail(sessionId)

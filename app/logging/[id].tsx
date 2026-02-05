@@ -7,7 +7,7 @@ import { colors } from '@/lib/theme';
 import { BottomLogger } from '@/components/BottomLogger';
 import { EventBubble } from '@/components/session';
 import { Skeleton } from '@/components/ui';
-import { useSession, useFinishSession, useCreateEvent, useSubmitFeedback } from '@/hooks';
+import { useSession, useFinishSession, useCreateEvent, useSubmitFeedback, useSubmitClarification } from '@/hooks';
 import type { SessionEvent } from '@/lib/api';
 import { formatDuration, calculateDuration } from '@/lib/utils';
 
@@ -25,6 +25,7 @@ export default function LoggingScreen() {
   const finishSession = useFinishSession();
   const createEvent = useCreateEvent(sessionId ?? 0);
   const feedback = useSubmitFeedback(sessionId ?? 0);
+  const clarification = useSubmitClarification(sessionId ?? 0);
 
   // Stable refs for refetch and createEvent to avoid tearing down intervals/callbacks
   const refetchRef = useRef(refetch);
@@ -124,6 +125,10 @@ export default function LoggingScreen() {
   const handleSelectSuggestion = useCallback((eventId: number, optionIndex: number) => {
     feedback.mutate({ eventId, selectedIndex: optionIndex });
   }, [feedback]);
+
+  const handleSubmitMissingValue = useCallback((eventId: number, field: 'reps' | 'weight' | 'set_count', value: number) => {
+    clarification.mutate({ eventId, field, value });
+  }, [clarification]);
 
   const handleFinish = useCallback(async () => {
     if (!sessionId) return;
@@ -327,6 +332,7 @@ export default function LoggingScreen() {
                 key={event.id}
                 event={event}
                 onSelectSuggestion={handleSelectSuggestion}
+                onSubmitMissingValue={handleSubmitMissingValue}
                 onEditRawText={(eventId) => console.log('Edit raw text', eventId)}
               />
             ))
