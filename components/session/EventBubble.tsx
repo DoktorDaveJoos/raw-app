@@ -29,7 +29,8 @@ function formatSetsSummary(sets: Set[] | null | undefined): string {
   if (!sets || sets.length === 0) return '';
   const count = sets.length;
   const weight = sets[0]?.weight_kg;
-  if (weight != null) return `${count} \u00d7 ${weight} kg`;
+  const unit = sets[0]?.unit ?? 'kg';
+  if (weight != null) return `${count} \u00d7 ${weight} ${unit}`;
   return `${count} set${count !== 1 ? 's' : ''}`;
 }
 
@@ -110,7 +111,7 @@ function ProcessingBubble({ event }: { event: SessionEvent }) {
           paddingHorizontal: 16,
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          gap: 10,
         },
       ]}
     >
@@ -120,7 +121,6 @@ function ProcessingBubble({ event }: { event: SessionEvent }) {
           fontSize: 14,
           color: '#FFFFFF',
           flex: 1,
-          marginRight: 12,
         }}
       >
         {event.raw_text}
@@ -130,8 +130,114 @@ function ProcessingBubble({ event }: { event: SessionEvent }) {
   );
 }
 
-function ParsedBubble({ event }: { event: SessionEvent }) {
+function ParsedExerciseContent({ event }: { event: SessionEvent }) {
   const summary = formatSetsSummary(event.sets);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <MaterialIcons name="check-circle" size={16} color="#666666" />
+      <View style={{ flex: 1 }}>
+        <Text
+          style={{
+            fontFamily: 'SpaceGrotesk_600SemiBold',
+            fontSize: 15,
+            color: '#FFFFFF',
+          }}
+        >
+          {event.exercise_name || 'Exercise'}
+        </Text>
+        {summary ? (
+          <Text
+            style={{
+              fontFamily: 'SpaceGrotesk_400Regular',
+              fontSize: 13,
+              color: '#9CA3AF',
+              marginTop: 2,
+            }}
+          >
+            {summary}
+          </Text>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function ParsedSymptomContent({ event }: { event: SessionEvent }) {
+  const symptom = event.symptom;
+  if (!symptom) return null;
+  const label = [symptom.body_part, symptom.symptom_type].filter(Boolean).join(' ');
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <MaterialIcons name="warning" size={16} color="#F59E0B" />
+      <Text
+        style={{
+          fontFamily: 'SpaceGrotesk_600SemiBold',
+          fontSize: 15,
+          color: '#FFFFFF',
+          flex: 1,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function ParsedReadinessContent({ event }: { event: SessionEvent }) {
+  const readiness = event.readiness;
+  if (!readiness) return null;
+  const score = readiness.value_score != null ? `${readiness.value_score}/5` : readiness.value_text;
+  const label = score ? `${readiness.signal_type}: ${score}` : readiness.signal_type;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <MaterialIcons name="battery-charging-full" size={16} color="#3B82F6" />
+      <Text
+        style={{
+          fontFamily: 'SpaceGrotesk_600SemiBold',
+          fontSize: 15,
+          color: '#FFFFFF',
+          flex: 1,
+        }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function ParsedNoteContent({ event }: { event: SessionEvent }) {
+  const note = event.note;
+  if (!note) return null;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+      <MaterialIcons name="notes" size={16} color="#8B5CF6" />
+      <Text
+        style={{
+          fontFamily: 'SpaceGrotesk_400Regular',
+          fontSize: 14,
+          color: '#FFFFFF',
+          flex: 1,
+        }}
+      >
+        {note.text}
+      </Text>
+    </View>
+  );
+}
+
+function ParsedBubble({ event }: { event: SessionEvent }) {
+  const renderContent = () => {
+    switch (event.type) {
+      case 'symptom':
+        return <ParsedSymptomContent event={event} />;
+      case 'readiness':
+        return <ParsedReadinessContent event={event} />;
+      case 'note':
+        return <ParsedNoteContent event={event} />;
+      default:
+        return <ParsedExerciseContent event={event} />;
+    }
+  };
 
   return (
     <View style={[BUBBLE_RADIUS, { backgroundColor: colors.card, overflow: 'hidden' }]}>
@@ -162,32 +268,7 @@ function ParsedBubble({ event }: { event: SessionEvent }) {
           gap: 12,
         }}
       >
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <MaterialIcons name="check-circle" size={16} color="#666666" />
-          <View style={{ flex: 1 }}>
-            <Text
-              style={{
-                fontFamily: 'SpaceGrotesk_600SemiBold',
-                fontSize: 15,
-                color: '#FFFFFF',
-              }}
-            >
-              {event.exercise_name || 'Exercise'}
-            </Text>
-            {summary ? (
-              <Text
-                style={{
-                  fontFamily: 'SpaceGrotesk_400Regular',
-                  fontSize: 13,
-                  color: '#9CA3AF',
-                  marginTop: 2,
-                }}
-              >
-                {summary}
-              </Text>
-            ) : null}
-          </View>
-        </View>
+        {renderContent()}
       </View>
     </View>
   );
@@ -264,7 +345,7 @@ function AmbiguousBubble({
                   color: '#FFFFFF',
                 }}
               >
-                {option.exercise_name}
+                {option.label || option.exercise_name}
               </Text>
               {event.sets && event.sets.length > 0 && (
                 <Text
@@ -355,7 +436,7 @@ export function EventBubble({ event, onSelectSuggestion, onEditRawText }: EventB
   const isFailed = event.status === 'failed';
 
   return (
-    <View style={{ gap: 6 }}>
+    <View style={{ gap: 4 }}>
       {/* Timestamp */}
       <Text
         style={{

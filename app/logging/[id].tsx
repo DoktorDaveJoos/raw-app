@@ -245,7 +245,7 @@ export default function LoggingScreen() {
         </Text>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          <MaterialIcons name="timer" size={14} color={colors.textDim} />
+          <MaterialIcons name="timer" size={14} color="#9CA3AF" />
           <Text
             style={{
               fontFamily: 'SpaceGrotesk_600SemiBold',
@@ -292,11 +292,11 @@ export default function LoggingScreen() {
         <ScrollView
           ref={scrollViewRef}
           className="flex-1"
-          contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 20, gap: 12 }}
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 24, paddingVertical: 16, gap: 12 }}
           showsVerticalScrollIndicator={false}
         >
           {sortedEvents.length === 0 && !createEvent.isPending ? (
-            <View className="items-center py-16">
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <MaterialIcons name="fitness-center" size={48} color={colors.textDim} />
               <Text
                 style={{
