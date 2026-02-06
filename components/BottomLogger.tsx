@@ -1,6 +1,16 @@
-import { View, TextInput, Pressable } from 'react-native';
+import { View, TextInput, Pressable, ScrollView, Text } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { colors } from '@/lib/theme';
+
+const SHORTCUT_TAGS = [
+  { label: 'warmup', text: 'warmup ' },
+  { label: '@rir1', text: '@rir1 ' },
+  { label: '@rir2', text: '@rir2 ' },
+  { label: '@rir3', text: '@rir3 ' },
+  { label: 'AMRAP', text: 'AMRAP ' },
+  { label: '+2.5kg', text: '+2.5kg ' },
+  { label: '+5kg', text: '+5kg ' },
+];
 
 export interface BottomLoggerProps {
   value: string;
@@ -34,6 +44,36 @@ export function BottomLogger({
         borderTopColor: colors.borderSubtle,
       }}
     >
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
+      >
+        {SHORTCUT_TAGS.map((tag) => (
+          <Pressable
+            key={tag.label}
+            onPress={() => onChangeText(value + tag.text)}
+            style={{
+              backgroundColor: colors.card,
+              borderRadius: 16,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: 'SpaceGrotesk_500Medium',
+                fontSize: 13,
+                color: colors.textMuted,
+              }}
+            >
+              {tag.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
       <View
         style={{
           backgroundColor: colors.card,
