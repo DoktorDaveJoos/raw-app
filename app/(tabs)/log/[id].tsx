@@ -76,7 +76,7 @@ export default function SessionDetailsScreen() {
   }, [session?.started_at]);
 
   const handleBack = () => {
-    router.back();
+    router.navigate('/(tabs)/log');
   };
 
   if (!sessionId) {
