@@ -100,9 +100,9 @@ export const mockSessionDetails = {
       status: 'completed',
       exercise_name: 'Bench Press',
       sets: [
-        { id: 1, set_number: 1, weight_kg: 100, reps: 8, rpe: 8.5, completed: true },
-        { id: 2, set_number: 2, weight_kg: 100, reps: 8, rpe: 9, completed: true },
-        { id: 3, set_number: 3, weight_kg: 100, reps: 8, rpe: 9, completed: true },
+        { id: 1, set_number: 1, weight_kg: 100, reps: 8, rpe: 8.5, unit: 'kg', completed: true },
+        { id: 2, set_number: 2, weight_kg: 100, reps: 8, rpe: 9, unit: 'kg', completed: true },
+        { id: 3, set_number: 3, weight_kg: 100, reps: 8, rpe: 9, unit: 'kg', completed: true },
       ],
       created_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
     },
@@ -113,8 +113,8 @@ export const mockSessionDetails = {
       status: 'completed',
       exercise_name: 'Squat',
       sets: [
-        { id: 4, set_number: 1, weight_kg: 140, reps: 5, rpe: 7, completed: true },
-        { id: 5, set_number: 2, weight_kg: 140, reps: 5, rpe: 7.5, completed: true },
+        { id: 4, set_number: 1, weight_kg: 140, reps: 5, rpe: 7, unit: 'kg', completed: true },
+        { id: 5, set_number: 2, weight_kg: 140, reps: 5, rpe: 7.5, unit: 'kg', completed: true },
       ],
       created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
     },
@@ -145,9 +145,9 @@ export const mockFinishedSessionDetails = {
       status: 'completed',
       exercise_name: 'Bench Press',
       sets: [
-        { id: 1, set_number: 1, weight_kg: 100, reps: 8, rpe: 8.5, completed: true },
-        { id: 2, set_number: 2, weight_kg: 100, reps: 8, rpe: 9, completed: true },
-        { id: 3, set_number: 3, weight_kg: 100, reps: 8, rpe: 9, completed: true },
+        { id: 1, set_number: 1, weight_kg: 100, reps: 8, rpe: 8.5, unit: 'kg', completed: true },
+        { id: 2, set_number: 2, weight_kg: 100, reps: 8, rpe: 9, unit: 'kg', completed: true },
+        { id: 3, set_number: 3, weight_kg: 100, reps: 8, rpe: 9, unit: 'kg', completed: true },
       ],
     },
     {
@@ -157,8 +157,8 @@ export const mockFinishedSessionDetails = {
       status: 'completed',
       exercise_name: 'Squat',
       sets: [
-        { id: 4, set_number: 1, weight_kg: 140, reps: 5, rpe: 7, completed: true },
-        { id: 5, set_number: 2, weight_kg: 140, reps: 5, rpe: 7.5, completed: true },
+        { id: 4, set_number: 1, weight_kg: 140, reps: 5, rpe: 7, unit: 'kg', completed: true },
+        { id: 5, set_number: 2, weight_kg: 140, reps: 5, rpe: 7.5, unit: 'kg', completed: true },
       ],
     },
     {
@@ -167,7 +167,7 @@ export const mockFinishedSessionDetails = {
       raw_text: 'deadlift 1x5 180kg',
       status: 'completed',
       exercise_name: 'Deadlift',
-      sets: [{ id: 6, set_number: 1, weight_kg: 180, reps: 5, rpe: 8, completed: true }],
+      sets: [{ id: 6, set_number: 1, weight_kg: 180, reps: 5, rpe: 8, unit: 'kg', completed: true }],
     },
   ],
   session_exercises: [

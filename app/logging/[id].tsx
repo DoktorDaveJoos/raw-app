@@ -5,9 +5,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { colors } from '@/lib/theme';
 import { BottomLogger } from '@/components/BottomLogger';
-import { EventBubble } from '@/components/session';
+import { EventBubble, EditRawTextModal, DeleteConfirmationModal } from '@/components/session';
 import { Skeleton } from '@/components/ui';
-import { useSession, useFinishSession, useCreateEvent, useSubmitFeedback, useSubmitClarification } from '@/hooks';
+import { useSession, useFinishSession, useCreateEvent, useDeleteEvent, useUpdateEvent, useSubmitFeedback, useSubmitClarification } from '@/hooks';
 import type { SessionEvent } from '@/lib/api';
 import { formatDuration, calculateDuration } from '@/lib/utils';
 
@@ -20,12 +20,28 @@ export default function LoggingScreen() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const isSending = useRef(false);
 
+  // Edit modal state (for clarification flow)
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editModalEventId, setEditModalEventId] = useState<number | null>(null);
+  const [editModalText, setEditModalText] = useState('');
+
+  // Delete modal state
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ eventId: number; exerciseName: string } | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
+
+  // Edit mode state (inline editing via bottom logger)
+  const [editMode, setEditMode] = useState(false);
+  const [editTarget, setEditTarget] = useState<{ eventId: number; exerciseName: string } | null>(null);
+
   // Fetch session data
   const { data: session, isLoading, isError, refetch } = useSession(sessionId);
   const finishSession = useFinishSession();
   const createEvent = useCreateEvent(sessionId ?? 0);
   const feedback = useSubmitFeedback(sessionId ?? 0);
   const clarification = useSubmitClarification(sessionId ?? 0);
+  const deleteEventMutation = useDeleteEvent(sessionId ?? 0);
+  const updateEventMutation = useUpdateEvent(sessionId ?? 0);
 
   // Stable refs for refetch and createEvent to avoid tearing down intervals/callbacks
   const refetchRef = useRef(refetch);
@@ -97,38 +113,148 @@ export default function LoggingScreen() {
   // ScrollView ref for auto-scrolling to new events
   const scrollViewRef = useRef<ScrollView>(null);
   const prevEventCount = useRef(0);
+  const prevContentHeight = useRef(0);
+  const isInitialMount = useRef(true);
+  // Track which raw_text values have been animated to prevent double animations
+  const animatedTexts = useRef<Set<string>>(new Set());
 
-  // Auto-scroll to bottom when new events are added
+  // Track last event status for status-change detection
+  const lastEventStatus = sortedEvents.length > 0
+    ? sortedEvents[sortedEvents.length - 1].status
+    : null;
+  const prevLastEventStatus = useRef<string | null>(null);
+
+  // Auto-scroll to bottom when:
+  // 1. New events are added
+  // 2. Last event status changes (bubble size likely changed)
+  // 3. Initial mount with events
   useEffect(() => {
-    if (sortedEvents.length > prevEventCount.current) {
+    const shouldScroll =
+      sortedEvents.length > prevEventCount.current || // New event added
+      (lastEventStatus !== prevLastEventStatus.current && sortedEvents.length > 0) || // Status changed
+      (isInitialMount.current && sortedEvents.length > 0); // Initial mount
+
+    if (shouldScroll) {
       setTimeout(() => {
-        scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+        scrollViewRef.current?.scrollToEnd({ animated: !isInitialMount.current });
+      }, 350);
     }
+
     prevEventCount.current = sortedEvents.length;
-  }, [sortedEvents.length]);
+    prevLastEventStatus.current = lastEventStatus;
+    isInitialMount.current = false;
+  }, [sortedEvents.length, lastEventStatus]);
+
+  // Handle content size changes (catches edge cases like bubble height changes)
+  const handleContentSizeChange = useCallback((_width: number, height: number) => {
+    // Only auto-scroll if content grew (not on shrink)
+    if (height > prevContentHeight.current && prevContentHeight.current > 0) {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+    }
+    prevContentHeight.current = height;
+  }, []);
 
   const handleSend = useCallback(async (text: string) => {
     if (!text.trim() || isSending.current) return;
 
     isSending.current = true;
     try {
-      await createEventRef.current.mutateAsync(text.trim());
-      setInputText('');
+      if (editMode && editTarget) {
+        await updateEventMutation.mutateAsync({ eventId: editTarget.eventId, rawText: text.trim() });
+        setEditMode(false);
+        setEditTarget(null);
+        setInputText('');
+      } else {
+        await createEventRef.current.mutateAsync(text.trim());
+        setInputText('');
+      }
     } catch (error) {
-      console.error('Failed to create event:', error);
+      console.error('Failed to send:', error);
     } finally {
       isSending.current = false;
     }
-  }, []);
+  }, [editMode, editTarget, updateEventMutation]);
 
-  const handleSelectSuggestion = useCallback((eventId: number, optionIndex: number) => {
-    feedback.mutate({ eventId, selectedIndex: optionIndex });
+  const handleSelectSuggestion = useCallback((
+    eventId: number,
+    optionIndex: number,
+    feedbackType: 'exercise' | 'unit' | 'structure' | 'note'
+  ) => {
+    feedback.mutate({ eventId, selectedIndex: optionIndex, feedbackType });
   }, [feedback]);
 
-  const handleSubmitMissingValue = useCallback((eventId: number, field: 'reps' | 'weight' | 'set_count', value: number) => {
-    clarification.mutate({ eventId, field, value });
+  const handleSelectClarificationOption = useCallback((eventId: number, optionIndex: number) => {
+    clarification.mutate({ type: 'select_option', eventId, selectedIndex: optionIndex });
   }, [clarification]);
+
+  const handleSubmitMissingValue = useCallback((eventId: number, field: 'reps' | 'weight' | 'set_count', value: number) => {
+    clarification.mutate({ type: 'provide_value', eventId, field, value });
+  }, [clarification]);
+
+  const handleEditRawText = useCallback((eventId: number, currentText: string) => {
+    setEditModalEventId(eventId);
+    setEditModalText(currentText);
+    setEditModalVisible(true);
+  }, []);
+
+  const handleCancelEditModal = useCallback(() => {
+    setEditModalVisible(false);
+    setEditModalEventId(null);
+    setEditModalText('');
+  }, []);
+
+  const handleSubmitEditedText = useCallback((editedText: string) => {
+    if (editModalEventId === null) return;
+    clarification.mutate(
+      { type: 'edit_text', eventId: editModalEventId, editedText },
+      {
+        onSuccess: () => {
+          setEditModalVisible(false);
+          setEditModalEventId(null);
+          setEditModalText('');
+        },
+      }
+    );
+  }, [clarification, editModalEventId]);
+
+  // Edit event via inline bottom logger
+  const handleEditEvent = useCallback((eventId: number, rawText: string, exerciseName: string) => {
+    setEditTarget({ eventId, exerciseName });
+    setInputText(rawText);
+    setEditMode(true);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditMode(false);
+    setEditTarget(null);
+    setInputText('');
+  }, []);
+
+  // Delete event
+  const handleDeleteEvent = useCallback((eventId: number, exerciseName: string) => {
+    setDeleteTarget({ eventId, exerciseName });
+    setDeleteModalVisible(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteEventMutation.mutateAsync(deleteTarget.eventId);
+      setDeleteSuccess(true);
+      setTimeout(() => {
+        setDeleteModalVisible(false);
+        setDeleteTarget(null);
+        setDeleteSuccess(false);
+      }, 800);
+    } catch (error) {
+      console.error('Failed to delete event:', error);
+    }
+  }, [deleteTarget, deleteEventMutation]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteModalVisible(false);
+    setDeleteTarget(null);
+  }, []);
 
   const handleFinish = useCallback(async () => {
     if (!sessionId) return;
@@ -299,6 +425,7 @@ export default function LoggingScreen() {
           className="flex-1"
           contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end', paddingHorizontal: 24, paddingVertical: 16, gap: 12 }}
           showsVerticalScrollIndicator={false}
+          onContentSizeChange={handleContentSizeChange}
         >
           {sortedEvents.length === 0 && !createEvent.isPending ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -327,15 +454,27 @@ export default function LoggingScreen() {
               </Text>
             </View>
           ) : (
-            sortedEvents.map((event) => (
-              <EventBubble
-                key={event.id}
-                event={event}
-                onSelectSuggestion={handleSelectSuggestion}
-                onSubmitMissingValue={handleSubmitMissingValue}
-                onEditRawText={(eventId) => console.log('Edit raw text', eventId)}
-              />
-            ))
+            sortedEvents.map((event) => {
+              // Track animated texts to prevent double animations when optimistic events resolve
+              const shouldAnimate = !animatedTexts.current.has(event.raw_text);
+              if (shouldAnimate) {
+                animatedTexts.current.add(event.raw_text);
+              }
+
+              return (
+                <EventBubble
+                  key={event.id}
+                  event={event}
+                  onSelectSuggestion={handleSelectSuggestion}
+                  onSelectClarificationOption={handleSelectClarificationOption}
+                  onSubmitMissingValue={handleSubmitMissingValue}
+                  onEditRawText={handleEditRawText}
+                  onEdit={handleEditEvent}
+                  onDelete={handleDeleteEvent}
+                  skipEntranceAnimation={!shouldAnimate}
+                />
+              );
+            })
           )}
         </ScrollView>
 
@@ -344,9 +483,31 @@ export default function LoggingScreen() {
           value={inputText}
           onChangeText={setInputText}
           onSend={handleSend}
-          disabled={createEvent.isPending}
+          disabled={createEvent.isPending || updateEventMutation.isPending}
+          editMode={editMode}
+          editExerciseName={editTarget?.exerciseName}
+          onCancelEdit={handleCancelEdit}
         />
       </KeyboardAvoidingView>
+
+      {/* Edit Raw Text Modal */}
+      <EditRawTextModal
+        visible={editModalVisible}
+        initialText={editModalText}
+        isSubmitting={clarification.isPending}
+        onCancel={handleCancelEditModal}
+        onSubmit={handleSubmitEditedText}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        visible={deleteModalVisible}
+        exerciseName={deleteTarget?.exerciseName ?? ''}
+        isDeleting={deleteEventMutation.isPending}
+        isDeleted={deleteSuccess}
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </SafeAreaView>
   );
 }

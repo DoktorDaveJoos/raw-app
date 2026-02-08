@@ -1,41 +1,31 @@
-import { View, Text, Pressable, FlatList, RefreshControl, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, SectionList, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { colors } from '@/lib/theme';
-import { formatRelativeTime } from '@/lib/utils';
-import { useSessions, useCurrentSession, useCreateAndStartSession } from '@/hooks';
+import { formatCardDate, formatDurationMinutes, groupSessionsByWeek } from '@/lib/utils';
+import { useSessions, useCurrentSession } from '@/hooks';
 import { Skeleton } from '@/components/ui';
 import type { WorkoutSessionSummary } from '@/lib/api';
+import type { WeekGroup } from '@/lib/utils';
 
 export default function LogScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch data
   const { data: sessionsResponse, isLoading, isError, refetch } = useSessions();
-  const { data: currentSession, refetch: refetchCurrent } = useCurrentSession();
-  const createAndStart = useCreateAndStartSession();
+  const { refetch: refetchCurrent } = useCurrentSession();
 
   const sessions = sessionsResponse?.data ?? [];
-
-  // Separate current and finished sessions
   const finishedSessions = sessions.filter((s) => s.status === 'finished');
+
+  const sections = useMemo(() => groupSessionsByWeek(finishedSessions), [finishedSessions]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([refetch(), refetchCurrent()]);
     setRefreshing(false);
   }, [refetch, refetchCurrent]);
-
-  const handleNewWorkout = async () => {
-    try {
-      const session = await createAndStart.mutateAsync('Free Training');
-      router.push(`/logging/${session.id}`);
-    } catch (error) {
-      Alert.alert('Unable to Create Workout', 'Please check your connection and try again.');
-    }
-  };
 
   const handleSessionPress = (session: WorkoutSessionSummary) => {
     if (session.status === 'in_progress') {
@@ -45,112 +35,66 @@ export default function LogScreen() {
     }
   };
 
-  const renderSession = ({ item, index }: { item: WorkoutSessionSummary; index: number }) => (
-    <SessionRow
-      session={item}
-      onPress={() => handleSessionPress(item)}
-      isFirst={index === 0}
-      isLast={index === finishedSessions.length - 1}
-    />
-  );
-
-  const ListHeader = () => (
-    <>
-      {/* Current Session Card */}
-      {currentSession && (
-        <View className="mb-4">
-          <CurrentSessionCard
-            session={currentSession}
-            onPress={() => handleSessionPress(currentSession)}
-          />
-        </View>
-      )}
-
-      {/* History Header - only show if there are finished sessions */}
-      {finishedSessions.length > 0 && (
-        <View className="mb-2">
-          <Text className="font-sans-bold text-xs uppercase tracking-widest text-neutral-500 px-1">
-            History
-          </Text>
-        </View>
-      )}
-    </>
-  );
-
   const ListEmpty = () => (
-    <View className="items-center py-12">
+    <View style={styles.emptyContainer}>
       {isLoading ? (
-        <View className="w-full">
-          <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 12 }} />
-          <Skeleton width="100%" height={80} borderRadius={16} style={{ marginBottom: 12 }} />
-          <Skeleton width="100%" height={80} borderRadius={16} />
+        <View style={{ width: '100%' }}>
+          <Skeleton width="100%" height={76} borderRadius={12} style={{ marginBottom: 8 }} />
+          <Skeleton width="100%" height={76} borderRadius={12} style={{ marginBottom: 8 }} />
+          <Skeleton width="100%" height={76} borderRadius={12} />
         </View>
       ) : isError ? (
-        <View className="items-center">
+        <View style={styles.errorContainer}>
           <MaterialIcons name="error-outline" size={48} color="#ef4444" />
-          <Text className="font-sans text-neutral-400 text-base mt-4">Failed to load workouts</Text>
-          <Text className="font-sans text-neutral-600 text-sm mt-1">
-            Check your connection and try again
-          </Text>
-          <Pressable
-            onPress={() => refetch()}
-            className="mt-4 px-6 py-3 bg-surface border border-white/10 rounded-xl active:bg-surface-hover"
-          >
-            <Text className="font-sans-medium text-white">Retry</Text>
+          <Text style={styles.errorTitle}>Failed to load workouts</Text>
+          <Text style={styles.errorSubtitle}>Check your connection and try again</Text>
+          <Pressable onPress={() => refetch()} style={styles.retryButton}>
+            <Text style={styles.retryText}>Retry</Text>
           </Pressable>
         </View>
       ) : (
         <>
           <MaterialIcons name="fitness-center" size={48} color={colors.textDim} />
-          <Text className="font-sans text-neutral-400 text-base mt-4">No workouts yet</Text>
-          <Text className="font-sans text-neutral-600 text-sm mt-1">
-            Start your first workout to see it here
-          </Text>
+          <Text style={styles.emptyTitle}>No workouts yet</Text>
+          <Text style={styles.emptySubtitle}>Start your first workout to see it here</Text>
         </>
       )}
     </View>
   );
 
-  const ListFooter = () => (
-    finishedSessions.length > 0 ? (
-      <View className="items-center py-6">
-        <Text className="font-sans text-neutral-600 text-xs tracking-wide">End of history</Text>
-      </View>
-    ) : null
-  );
-
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-4 border-b border-white/5">
-        <Text className="font-sans-bold text-xl tracking-tight text-white">Workouts</Text>
-        <Pressable
-          className="flex-row items-center bg-primary px-3 py-1.5 rounded-full active:opacity-80"
-          onPress={handleNewWorkout}
-          disabled={createAndStart.isPending}
-        >
-          {createAndStart.isPending ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <>
-              <MaterialIcons name="add" size={18} color="white" />
-              <Text className="font-sans-semibold text-white text-xs tracking-wide ml-1">
-                New Workout
-              </Text>
-            </>
-          )}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Pressable onPress={() => router.back()} hitSlop={8}>
+            <MaterialIcons name="chevron-left" size={24} color={colors.textPrimary} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Workout History</Text>
+        </View>
+        <Pressable hitSlop={8}>
+          <MaterialIcons name="tune" size={20} color={colors.textMuted} />
         </Pressable>
       </View>
 
       {/* Sessions List */}
-      <FlatList
-        data={finishedSessions}
-        renderItem={renderSession}
+      <SectionList<WorkoutSessionSummary, WeekGroup>
+        sections={sections}
         keyExtractor={(item) => item.id.toString()}
-        ListHeaderComponent={ListHeader}
+        renderItem={({ item }) => (
+          <WorkoutCard session={item} onPress={() => handleSessionPress(item)} />
+        )}
+        renderSectionHeader={({ section }) => (
+          <WeekSectionHeader
+            title={section.title}
+            stats={section.stats}
+            isFirst={sections[0]?.weekKey === section.weekKey}
+          />
+        )}
         ListEmptyComponent={ListEmpty}
-        ListFooterComponent={ListFooter}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        ItemSeparatorComponent={() => <View style={{ height: 8 }} />}
+        stickySectionHeadersEnabled={false}
+        contentContainerStyle={styles.listContent}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -159,102 +103,216 @@ export default function LogScreen() {
             colors={[colors.primary]}
           />
         }
-        ItemSeparatorComponent={() => <View className="h-px bg-white/5" />}
       />
     </SafeAreaView>
   );
 }
 
-interface CurrentSessionCardProps {
-  session: WorkoutSessionSummary;
-  onPress: () => void;
-}
-
-function CurrentSessionCard({ session, onPress }: CurrentSessionCardProps) {
+function WeekSectionHeader({ title, stats, isFirst }: { title: string; stats: string; isFirst: boolean }) {
   return (
-    <Pressable
-      className="bg-surface rounded-2xl border border-primary/20 p-4 active:bg-surface-hover"
-      onPress={onPress}
-    >
-      {/* Header */}
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="font-sans-semibold text-xs text-primary">Your current training</Text>
-        <View className="px-2 py-0.5 rounded-full bg-primary/20 border border-primary/20">
-          <Text className="font-sans-bold text-[10px] uppercase tracking-wider text-primary">
-            In Progress
-          </Text>
-        </View>
-      </View>
-
-      {/* Content */}
-      <View className="flex-row items-center justify-between">
-        <View className="flex-1">
-          <Text className="font-sans-medium text-white text-base">
-            {session.title || 'Untitled Workout'}
-          </Text>
-          <Text className="font-sans text-neutral-500 text-xs mt-0.5">
-            Started {formatRelativeTime(session.started_at)}
-          </Text>
-          <Text className="font-sans text-neutral-500 text-xs mt-1">
-            {session.exercises_count} exercises • {session.sets_count} sets
-          </Text>
-        </View>
-
-        {/* Resume Button */}
-        <Pressable
-          className="bg-white/10 px-4 py-2 rounded-lg active:bg-white/20"
-          onPress={onPress}
-        >
-          <Text className="font-sans-semibold text-white text-xs">Resume</Text>
-        </Pressable>
-      </View>
-    </Pressable>
+    <View style={[styles.sectionHeader, !isFirst && { marginTop: 24 }]}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={styles.sectionStats}>{stats}</Text>
+    </View>
   );
 }
 
-interface SessionRowProps {
-  session: WorkoutSessionSummary;
-  onPress: () => void;
-  isFirst: boolean;
-  isLast: boolean;
-}
-
-function SessionRow({ session, onPress, isFirst, isLast }: SessionRowProps) {
-  const dateDisplay = session.finished_at
-    ? formatRelativeTime(session.finished_at)
-    : formatRelativeTime(session.started_at);
+function WorkoutCard({ session, onPress }: { session: WorkoutSessionSummary; onPress: () => void }) {
+  const dateDisplay = formatCardDate(session.finished_at ?? session.started_at);
+  const durationDisplay = formatDurationMinutes(session.duration_seconds);
+  const volumeKg = session.volume_kg ?? 0;
+  const volumeDisplay = volumeKg >= 1000
+    ? `${(volumeKg / 1000).toFixed(1).replace(/\.0$/, '')}k`
+    : volumeKg.toString();
 
   return (
-    <Pressable
-      className={`bg-surface p-4 active:bg-surface-hover ${isFirst ? 'rounded-t-2xl' : ''} ${isLast ? 'rounded-b-2xl' : ''}`}
-      onPress={onPress}
-    >
-      <View className="flex-row items-center justify-between">
-        <View className="flex-1">
-          {/* Date and Badge Row */}
-          <View className="flex-row items-center justify-between mb-1">
-            <Text className="font-sans-medium text-sm text-white">{dateDisplay}</Text>
-            <View className="px-2 py-0.5 rounded-full bg-neutral-800 border border-neutral-700">
-              <Text className="font-sans-bold text-[10px] uppercase tracking-wider text-neutral-400">
-                Finished
-              </Text>
-            </View>
+    <Pressable style={styles.card} onPress={onPress}>
+      <View style={styles.cardInner}>
+        {/* Left: title + meta */}
+        <View style={styles.cardLeft}>
+          <Text style={styles.cardTitle} numberOfLines={1}>
+            {session.title || 'Untitled Workout'}
+          </Text>
+          <View style={styles.cardMeta}>
+            <Text style={styles.cardMetaText}>{dateDisplay}</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.cardMetaText}>{durationDisplay}</Text>
           </View>
-
-          {/* Title */}
-          <Text className="font-sans text-white/90 text-sm">
-            {session.title || 'Untitled Workout'}
-          </Text>
-
-          {/* Summary */}
-          <Text className="font-sans text-neutral-500 text-xs mt-1">
-            {session.exercises_count} exercise{session.exercises_count !== 1 ? 's' : ''} • {session.sets_count} set{session.sets_count !== 1 ? 's' : ''}
-          </Text>
         </View>
 
-        {/* Visibility Icon */}
-        <MaterialIcons name="visibility" size={20} color={colors.textDim} style={{ marginLeft: 12 }} />
+        {/* Right: stats + chevron */}
+        <View style={styles.cardRight}>
+          <View style={styles.statsGroup}>
+            <StatColumn value={session.exercises_count.toString()} label="ex" />
+            <StatColumn value={session.sets_count.toString()} label="sets" />
+            <StatColumn value={volumeDisplay} label="kg" accent />
+          </View>
+          <MaterialIcons name="chevron-right" size={18} color={colors.textDim} />
+        </View>
       </View>
     </Pressable>
   );
 }
+
+function StatColumn({ value, label, accent }: { value: string; label: string; accent?: boolean }) {
+  return (
+    <View style={styles.statColumn}>
+      <Text style={[styles.statValue, accent && { color: colors.primary }]}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    height: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: colors.textPrimary,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 100,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: colors.textPrimary,
+  },
+  sectionStats: {
+    fontSize: 12,
+    fontFamily: 'SpaceGrotesk_500Medium',
+    color: colors.textDim,
+  },
+  card: {
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  cardInner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardLeft: {
+    flex: 1,
+    gap: 6,
+    marginRight: 12,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: colors.textPrimary,
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardMetaText: {
+    fontSize: 12,
+    fontFamily: 'SpaceGrotesk_500Medium',
+    color: colors.textMuted,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.textDim,
+  },
+  cardRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  statsGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statColumn: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  statValue: {
+    fontSize: 14,
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    color: colors.textPrimary,
+  },
+  statLabel: {
+    fontSize: 10,
+    fontFamily: 'SpaceGrotesk_500Medium',
+    color: colors.textDim,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyTitle: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    color: colors.textMuted,
+    fontSize: 16,
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    color: colors.textDim,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  errorContainer: {
+    alignItems: 'center',
+  },
+  errorTitle: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    color: colors.textMuted,
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorSubtitle: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    color: colors.textDim,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
+  },
+  retryText: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    color: colors.textPrimary,
+  },
+});

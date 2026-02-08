@@ -96,3 +96,31 @@ export function calculateDuration(startDate: string | null | undefined, endDate:
 
   return Math.floor((end.getTime() - start.getTime()) / 1000);
 }
+
+/**
+ * Format a date for workout cards: "Today" / "Yesterday" / "Feb 5"
+ */
+export function formatCardDate(dateString: string | null | undefined): string {
+  if (!dateString) return '';
+
+  const date = new Date(dateString);
+  const now = new Date();
+
+  // Compare by calendar day (not 24h window)
+  const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((today.getTime() - dateDay.getTime()) / 86400000);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+/**
+ * Format duration in seconds to "48 min" format
+ */
+export function formatDurationMinutes(seconds: number | null | undefined): string {
+  if (!seconds || seconds <= 0) return '0 min';
+  return `${Math.round(seconds / 60)} min`;
+}

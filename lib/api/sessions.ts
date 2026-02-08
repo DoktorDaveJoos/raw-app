@@ -33,6 +33,7 @@ interface RawAiParseRun {
       weight: number | null;
       unit: string;
       rpe?: number | null;
+      rir?: number | null;
     }>;
     symptom?: { body_part: string; symptom_type?: string };
     readiness?: { signal_type: string; value_text?: string; value_score?: number };
@@ -117,6 +118,7 @@ function transformSessionEvent(raw: RawSessionEvent): SessionEvent {
       weight_kg: s.weight,
       reps: s.reps,
       rpe: s.rpe ?? null,
+      rir: s.rir ?? null,
       unit: s.unit ?? 'kg',
       completed: true,
     }));
@@ -137,6 +139,7 @@ function transformSessionEvent(raw: RawSessionEvent): SessionEvent {
           exercise_name: s.output_json?.exercise?.name ?? s.label,
           confidence: s.output_json?.confidence as number | undefined,
           label: s.label,
+          output_json: s.output_json,
         })),
         selected_index: null as number | null,
       }
@@ -192,7 +195,23 @@ export async function getSessions(filters?: SessionFilters): Promise<PaginatedSe
   if (filters?.per_page) params.append('per_page', filters.per_page.toString());
 
   const response = await apiClient.get<PaginatedSessionsResponse>('/sessions', { params });
-  return response.data;
+  const data = response.data;
+
+  // Normalize backend completed_at → finished_at, compute duration_seconds
+  data.data = data.data.map((session: any) => ({
+    ...session,
+    finished_at: session.finished_at ?? session.completed_at ?? null,
+    duration_seconds: session.duration_seconds ?? computeDuration(session),
+  }));
+
+  return data;
+}
+
+function computeDuration(session: any): number | null {
+  const start = session.started_at;
+  const end = session.finished_at ?? session.completed_at;
+  if (!start || !end) return null;
+  return Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 1000);
 }
 
 /**

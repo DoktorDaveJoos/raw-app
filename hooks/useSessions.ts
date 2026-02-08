@@ -8,6 +8,8 @@ import {
   finishSession,
   createAndStartSession,
   createEvent,
+  updateEvent,
+  deleteEvent,
   submitFeedback,
   submitClarification,
 } from '@/lib/api';
@@ -271,25 +273,107 @@ export function useSubmitFeedback(sessionId: number) {
 }
 
 /**
- * Hook to submit clarification response (provide missing value) for an event
+ * Hook to delete an event with optimistic removal
+ */
+export function useDeleteEvent(sessionId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (eventId: number) => deleteEvent(sessionId, eventId),
+    retry: false,
+    onMutate: async (eventId) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.sessions.detail(sessionId) });
+
+      const previousSession = queryClient.getQueryData<WorkoutSessionDetails>(
+        queryKeys.sessions.detail(sessionId)
+      );
+
+      if (previousSession) {
+        queryClient.setQueryData<WorkoutSessionDetails>(
+          queryKeys.sessions.detail(sessionId),
+          {
+            ...previousSession,
+            session_events: previousSession.session_events.filter((e) => e.id !== eventId),
+          }
+        );
+      }
+
+      return { previousSession };
+    },
+    onError: (_err, _eventId, context) => {
+      if (context?.previousSession) {
+        queryClient.setQueryData(
+          queryKeys.sessions.detail(sessionId),
+          context.previousSession
+        );
+      }
+    },
+  });
+}
+
+/**
+ * Hook to update an event (re-parse with new raw_text)
+ */
+export function useUpdateEvent(sessionId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, rawText }: { eventId: number; rawText: string }) =>
+      updateEvent(sessionId, eventId, { raw_text: rawText }),
+    onSuccess: (updatedEvent) => {
+      const session = queryClient.getQueryData<WorkoutSessionDetails>(
+        queryKeys.sessions.detail(sessionId)
+      );
+      if (session) {
+        queryClient.setQueryData<WorkoutSessionDetails>(
+          queryKeys.sessions.detail(sessionId),
+          {
+            ...session,
+            session_events: session.session_events.map((e) =>
+              e.id === updatedEvent.id ? updatedEvent : e
+            ),
+          }
+        );
+      }
+    },
+  });
+}
+
+/**
+ * Discriminated union for clarification payloads
+ */
+export type ClarificationPayload =
+  | { type: 'provide_value'; eventId: number; field: 'reps' | 'weight' | 'set_count'; value: number }
+  | { type: 'select_option'; eventId: number; selectedIndex: number }
+  | { type: 'edit_text'; eventId: number; editedText: string };
+
+/**
+ * Hook to submit clarification response for an event
+ * Supports all three response types: provide_value, select_option, edit_text
  */
 export function useSubmitClarification(sessionId: number) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      eventId,
-      field,
-      value,
-    }: {
-      eventId: number;
-      field: 'reps' | 'weight' | 'set_count';
-      value: number;
-    }) =>
-      submitClarification(sessionId, eventId, {
-        response_type: 'provide_value',
-        provided_value: { [field]: value },
-      }),
+    mutationFn: (payload: ClarificationPayload) => {
+      switch (payload.type) {
+        case 'provide_value':
+          return submitClarification(sessionId, payload.eventId, {
+            response_type: 'provide_value',
+            provided_value: { [payload.field]: payload.value },
+          });
+        case 'select_option':
+          return submitClarification(sessionId, payload.eventId, {
+            response_type: 'select_option',
+            selected_option_index: payload.selectedIndex,
+          });
+        case 'edit_text':
+          return submitClarification(sessionId, payload.eventId, {
+            response_type: 'edit_text',
+            edited_text: payload.editedText,
+          });
+      }
+    },
     onSuccess: (updatedEvent) => {
       const session = queryClient.getQueryData<WorkoutSessionDetails>(
         queryKeys.sessions.detail(sessionId)

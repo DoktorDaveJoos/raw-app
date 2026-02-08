@@ -7,6 +7,8 @@ export interface SetData {
   weight_kg: number | null;
   reps: number;
   rpe: number | null;
+  rir: number | null;
+  unit?: string;
   completed?: boolean;
 }
 
@@ -17,6 +19,8 @@ export interface SetsTableProps {
 }
 
 export function SetsTable({ sets, onSetPress, showHeader = true }: SetsTableProps) {
+  const weightLabel = (sets[0]?.unit ?? 'kg').toUpperCase();
+
   return (
     <View className="rounded-xl overflow-hidden">
       {/* Header */}
@@ -26,13 +30,13 @@ export function SetsTable({ sets, onSetPress, showHeader = true }: SetsTableProp
             #
           </Text>
           <Text className="font-sans-bold flex-1 text-center text-[10px] text-neutral-600 uppercase tracking-widest">
-            Kg
+            {weightLabel}
           </Text>
           <Text className="font-sans-bold flex-1 text-center text-[10px] text-neutral-600 uppercase tracking-widest">
             Reps
           </Text>
           <Text className="font-sans-bold flex-1 text-center text-[10px] text-neutral-600 uppercase tracking-widest">
-            RPE
+            RIR
           </Text>
           <View className="w-8" />
         </View>
@@ -80,7 +84,7 @@ function SetRow({ set, isLast, onPress }: SetRowProps) {
         {set.reps}
       </Text>
       <Text className="font-sans-medium flex-1 text-center text-neutral-400 text-sm">
-        {set.rpe ?? '-'}
+        {set.rir ?? (set.rpe !== null ? 10 - set.rpe : null) ?? '-'}
       </Text>
       <View className="w-8 items-end">
         {(set.completed !== false) && (

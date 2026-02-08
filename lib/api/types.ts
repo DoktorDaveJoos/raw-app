@@ -23,6 +23,7 @@ export const SetSchema = z.object({
   weight_kg: z.number().nullable(),
   reps: z.number(),
   rpe: z.number().nullable(),
+  rir: z.number().nullable(),
   unit: z.string().default('kg'),
   completed: z.boolean().optional().default(true),
 });
@@ -47,7 +48,10 @@ export const SuggestionOptionSchema = z.object({
   exercise_name: z.string(),
   confidence: z.number().optional(),
   label: z.string().optional(),
+  output_json: z.record(z.string(), z.unknown()).optional(),
 });
+
+export type SuggestionOption = z.infer<typeof SuggestionOptionSchema>;
 
 export const SuggestionsSchema = z.object({
   options: z.array(SuggestionOptionSchema),
@@ -233,6 +237,7 @@ export interface CreateEventRequest {
 }
 
 export interface UpdateEventRequest {
+  raw_text?: string;
   exercise_name?: string;
   sets?: Partial<Set>[];
 }

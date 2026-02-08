@@ -1,6 +1,7 @@
 import { View, Text, Pressable, TextInput } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -8,15 +9,54 @@ import Animated, {
   withTiming,
   withDelay,
   withSequence,
+  FadeInUp,
+  LinearTransition,
 } from 'react-native-reanimated';
 import { colors } from '@/lib/theme';
-import type { SessionEvent, Set } from '@/lib/api';
+import type { SessionEvent, Set, SuggestionOption } from '@/lib/api';
+
+// Hook to track previous value for detecting status transitions
+function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T | undefined>(undefined);
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
+
+type FeedbackType = 'exercise' | 'unit' | 'structure' | 'note';
+
+function determineFeedbackType(option: SuggestionOption): FeedbackType {
+  const outputJson = option.output_json as Record<string, unknown> | undefined;
+
+  // "Save as note only" option
+  if (outputJson?.action_type === 'note' || option.label?.toLowerCase().includes('note')) {
+    return 'note';
+  }
+
+  // Unit disambiguation (label contains kg/lb)
+  if (option.label?.match(/\b(kg|lb|lbs)\b/i)) {
+    return 'unit';
+  }
+
+  // Exercise disambiguation (has exercise without ID match)
+  const exercise = outputJson?.exercise as Record<string, unknown> | undefined;
+  if (exercise?.name && !exercise?.id) {
+    return 'exercise';
+  }
+
+  return 'structure';
+}
 
 interface EventBubbleProps {
   event: SessionEvent;
-  onSelectSuggestion?: (eventId: number, optionIndex: number) => void;
-  onEditRawText?: (eventId: number) => void;
+  onSelectSuggestion?: (eventId: number, optionIndex: number, feedbackType: FeedbackType) => void;
+  onSelectClarificationOption?: (eventId: number, optionIndex: number) => void;
+  onEditRawText?: (eventId: number, currentText: string) => void;
   onSubmitMissingValue?: (eventId: number, field: 'reps' | 'weight' | 'set_count', value: number) => void;
+  onEdit?: (eventId: number, rawText: string, exerciseName: string) => void;
+  onDelete?: (eventId: number, exerciseName: string) => void;
+  skipEntranceAnimation?: boolean;
 }
 
 const BUBBLE_RADIUS = {
@@ -35,16 +75,24 @@ function formatSetsSummary(sets: Set[] | null | undefined): string {
   return `${count} set${count !== 1 ? 's' : ''}`;
 }
 
-function getRirColors(rpe: number | null | undefined): { text: string; bg: string } | null {
-  if (rpe === null || rpe === undefined) return null;
-  const rir = 10 - rpe;
-  if (rir >= 2) return { text: '#6FCF97', bg: '#2D4A3E' }; // Green
-  if (rir === 1) return { text: '#F2C94C', bg: '#4A3D2D' }; // Yellow
-  return { text: '#EB5757', bg: '#4A2D2D' }; // Red (@0)
+function getRirColors(rir: number | null | undefined, rpe: number | null | undefined): { text: string; bg: string; value: number } | null {
+  // Use rir directly if available
+  let rirValue: number | null = rir ?? null;
+
+  // Fall back to calculating from rpe if rir not available
+  if (rirValue === null && rpe !== null && rpe !== undefined) {
+    rirValue = 10 - rpe;
+  }
+
+  if (rirValue === null) return null;
+
+  if (rirValue >= 2) return { text: '#6FCF97', bg: '#2D4A3E', value: rirValue }; // Green
+  if (rirValue === 1) return { text: '#F2C94C', bg: '#4A3D2D', value: rirValue }; // Yellow
+  return { text: '#EB5757', bg: '#4A2D2D', value: rirValue }; // Red (@0)
 }
 
 function SetRow({ set }: { set: Set }) {
-  const rirColors = getRirColors(set.rpe);
+  const rirColors = getRirColors(set.rir, set.rpe);
   const unit = set.unit ?? 'kg';
 
   return (
@@ -54,14 +102,14 @@ function SetRow({ set }: { set: Set }) {
         alignItems: 'center',
         justifyContent: 'space-between',
         gap: 8,
-        paddingVertical: 6,
+        paddingVertical: 8,
         width: '100%',
       }}
     >
       <Text
         style={{
           fontFamily: 'SpaceGrotesk_500Medium',
-          fontSize: 12,
+          fontSize: 13,
           color: '#9CA3AF',
         }}
       >
@@ -70,32 +118,12 @@ function SetRow({ set }: { set: Set }) {
       <Text
         style={{
           fontFamily: 'SpaceGrotesk_400Regular',
-          fontSize: 12,
+          fontSize: 13,
           color: '#6B7280',
         }}
       >
         {set.reps} reps
       </Text>
-      {set.rpe !== null && set.rpe !== undefined && (
-        <View
-          style={{
-            backgroundColor: '#374151',
-            paddingHorizontal: 6,
-            paddingVertical: 2,
-            borderRadius: 4,
-          }}
-        >
-          <Text
-            style={{
-              fontFamily: 'SpaceGrotesk_500Medium',
-              fontSize: 11,
-              color: '#9CA3AF',
-            }}
-          >
-            RPE {set.rpe}
-          </Text>
-        </View>
-      )}
       {rirColors && (
         <View
           style={{
@@ -107,12 +135,12 @@ function SetRow({ set }: { set: Set }) {
         >
           <Text
             style={{
-              fontFamily: 'SpaceGrotesk_500Medium',
-              fontSize: 11,
+              fontFamily: 'SpaceGrotesk_600SemiBold',
+              fontSize: 10,
               color: rirColors.text,
             }}
           >
-            @{10 - (set.rpe ?? 0)}
+            @{rirColors.value} RIR
           </Text>
         </View>
       )}
@@ -120,7 +148,7 @@ function SetRow({ set }: { set: Set }) {
         <Text
           style={{
             fontFamily: 'SpaceGrotesk_500Medium',
-            fontSize: 12,
+            fontSize: 13,
             color: '#9CA3AF',
           }}
         >
@@ -227,21 +255,41 @@ function ProcessingBubble({ event }: { event: SessionEvent }) {
   );
 }
 
-function ParsedExerciseContent({ event }: { event: SessionEvent }) {
+function ParsedExerciseContent({
+  event,
+  onEdit,
+  onDelete,
+}: {
+  event: SessionEvent;
+  onEdit?: (eventId: number, rawText: string, exerciseName: string) => void;
+  onDelete?: (eventId: number, exerciseName: string) => void;
+}) {
+  const exerciseName = event.exercise_name || 'Exercise';
+
   return (
     <View style={{ gap: 4 }}>
-      {/* Header with check icon and exercise name */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <MaterialIcons name="check-circle" size={16} color="#666666" />
-        <Text
-          style={{
-            fontFamily: 'SpaceGrotesk_600SemiBold',
-            fontSize: 15,
-            color: '#FFFFFF',
-          }}
-        >
-          {event.exercise_name || 'Exercise'}
-        </Text>
+      {/* Header with check icon, exercise name, and action icons */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+          <MaterialIcons name="check-circle" size={16} color="#666666" />
+          <Text
+            style={{
+              fontFamily: 'SpaceGrotesk_600SemiBold',
+              fontSize: 15,
+              color: '#FFFFFF',
+            }}
+          >
+            {exerciseName}
+          </Text>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Pressable onPress={() => onEdit?.(event.id, event.raw_text, exerciseName)} hitSlop={8}>
+            <MaterialIcons name="edit" size={18} color="#6B7280" />
+          </Pressable>
+          <Pressable onPress={() => onDelete?.(event.id, exerciseName)} hitSlop={8}>
+            <MaterialIcons name="delete" size={18} color="#EF4444" />
+          </Pressable>
+        </View>
       </View>
 
       {/* Set rows */}
@@ -319,7 +367,15 @@ function ParsedNoteContent({ event }: { event: SessionEvent }) {
   );
 }
 
-function ParsedBubble({ event }: { event: SessionEvent }) {
+function ParsedBubble({
+  event,
+  onEdit,
+  onDelete,
+}: {
+  event: SessionEvent;
+  onEdit?: (eventId: number, rawText: string, exerciseName: string) => void;
+  onDelete?: (eventId: number, exerciseName: string) => void;
+}) {
   const renderContent = () => {
     switch (event.type) {
       case 'symptom':
@@ -329,7 +385,7 @@ function ParsedBubble({ event }: { event: SessionEvent }) {
       case 'note':
         return <ParsedNoteContent event={event} />;
       default:
-        return <ParsedExerciseContent event={event} />;
+        return <ParsedExerciseContent event={event} onEdit={onEdit} onDelete={onDelete} />;
     }
   };
 
@@ -371,13 +427,48 @@ function ParsedBubble({ event }: { event: SessionEvent }) {
 function AmbiguousBubble({
   event,
   onSelectSuggestion,
+  onSelectClarificationOption,
   onEditRawText,
 }: {
   event: SessionEvent;
-  onSelectSuggestion?: (eventId: number, optionIndex: number) => void;
-  onEditRawText?: (eventId: number) => void;
+  onSelectSuggestion?: (eventId: number, optionIndex: number, feedbackType: FeedbackType) => void;
+  onSelectClarificationOption?: (eventId: number, optionIndex: number) => void;
+  onEditRawText?: (eventId: number, currentText: string) => void;
 }) {
-  const options = event.suggestions?.options ?? [];
+  // Determine which flow to use:
+  // 1. clarification.type === 'ambiguity' -> use clarification options with /clarify endpoint
+  // 2. suggestions exist (no clarification) -> use suggestions with /feedback endpoint
+  const isClarificationAmbiguity = event.clarification?.type === 'ambiguity';
+  const clarificationOptions = event.clarification?.options ?? [];
+  const suggestionOptions = event.suggestions?.options ?? [];
+
+  const options = isClarificationAmbiguity ? clarificationOptions : suggestionOptions;
+  const promptMessage = event.clarification?.message;
+
+  const handleOptionPress = (index: number) => {
+    if (isClarificationAmbiguity) {
+      onSelectClarificationOption?.(event.id, index);
+    } else {
+      const option = suggestionOptions[index];
+      if (option) {
+        const feedbackType = determineFeedbackType(option);
+        onSelectSuggestion?.(event.id, index, feedbackType);
+      }
+    }
+  };
+
+  const getPromptText = () => {
+    if (promptMessage) return promptMessage;
+    if (options.length === 0) return 'Please select an option:';
+    if (isClarificationAmbiguity) return 'Which interpretation is correct?';
+    const feedbackType = determineFeedbackType(suggestionOptions[0]);
+    switch (feedbackType) {
+      case 'exercise': return 'Which exercise did you mean?';
+      case 'unit': return 'Which unit did you mean?';
+      case 'note': return 'Save as note?';
+      default: return 'Please confirm:';
+    }
+  };
 
   return (
     <View style={[BUBBLE_RADIUS, { backgroundColor: colors.card, overflow: 'hidden' }]}>
@@ -415,51 +506,58 @@ function AmbiguousBubble({
             color: '#9CA3AF',
           }}
         >
-          Which exercise did you mean?
+          {getPromptText()}
         </Text>
 
         {/* Option buttons */}
-        <View style={{ flexDirection: 'row', gap: 8 }}>
-          {options.map((option, index) => (
-            <Pressable
-              key={index}
-              onPress={() => onSelectSuggestion?.(event.id, index)}
-              style={{
-                flex: 1,
-                backgroundColor: colors.card,
-                borderRadius: 12,
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-              }}
-            >
-              <Text
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          {options.map((option, index) => {
+            const label = isClarificationAmbiguity
+              ? (option as { label: string }).label
+              : ((option as SuggestionOption).label || (option as SuggestionOption).exercise_name);
+
+            return (
+              <Pressable
+                key={index}
+                onPress={() => handleOptionPress(index)}
                 style={{
-                  fontFamily: 'SpaceGrotesk_600SemiBold',
-                  fontSize: 13,
-                  color: '#FFFFFF',
+                  flex: options.length <= 2 ? 1 : undefined,
+                  minWidth: options.length > 2 ? '45%' : undefined,
+                  backgroundColor: colors.card,
+                  borderRadius: 12,
+                  paddingVertical: 10,
+                  paddingHorizontal: 12,
                 }}
               >
-                {option.label || option.exercise_name}
-              </Text>
-              {event.sets && event.sets.length > 0 && (
                 <Text
                   style={{
-                    fontFamily: 'SpaceGrotesk_400Regular',
-                    fontSize: 11,
-                    color: '#9CA3AF',
-                    marginTop: 2,
+                    fontFamily: 'SpaceGrotesk_600SemiBold',
+                    fontSize: 13,
+                    color: '#FFFFFF',
                   }}
                 >
-                  {formatSetsSummary(event.sets)}
+                  {label}
                 </Text>
-              )}
-            </Pressable>
-          ))}
+                {!isClarificationAmbiguity && event.sets && event.sets.length > 0 && (
+                  <Text
+                    style={{
+                      fontFamily: 'SpaceGrotesk_400Regular',
+                      fontSize: 11,
+                      color: '#9CA3AF',
+                      marginTop: 2,
+                    }}
+                  >
+                    {formatSetsSummary(event.sets)}
+                  </Text>
+                )}
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Edit raw text button */}
         <Pressable
-          onPress={() => onEditRawText?.(event.id)}
+          onPress={() => onEditRawText?.(event.id, event.raw_text)}
           style={{
             borderRadius: 10,
             borderWidth: 1,
@@ -495,7 +593,7 @@ function MissingInfoBubble({
 }: {
   event: SessionEvent;
   onSubmitMissingValue?: (eventId: number, field: 'reps' | 'weight' | 'set_count', value: number) => void;
-  onEditRawText?: (eventId: number) => void;
+  onEditRawText?: (eventId: number, currentText: string) => void;
 }) {
   const [inputValue, setInputValue] = useState('');
   const clarification = event.clarification;
@@ -618,9 +716,13 @@ function MissingInfoBubble({
               flex: 1,
               flexDirection: 'row',
               alignItems: 'center',
+              justifyContent: 'space-between',
               backgroundColor: colors.card,
-              borderRadius: 12,
-              paddingHorizontal: 12,
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              height: 44,
+              borderWidth: 1,
+              borderColor: colors.borderSubtle,
             }}
           >
             <TextInput
@@ -630,18 +732,16 @@ function MissingInfoBubble({
               placeholderTextColor="#6B7280"
               keyboardType="numeric"
               style={{
-                flex: 1,
-                fontFamily: 'SpaceGrotesk_600SemiBold',
+                fontFamily: 'SpaceGrotesk_500Medium',
                 fontSize: 16,
                 color: '#FFFFFF',
-                paddingVertical: 10,
               }}
               onSubmitEditing={handleSubmit}
             />
             <Text
               style={{
-                fontFamily: 'SpaceGrotesk_500Medium',
-                fontSize: 13,
+                fontFamily: 'SpaceGrotesk_400Regular',
+                fontSize: 14,
                 color: '#6B7280',
               }}
             >
@@ -652,27 +752,25 @@ function MissingInfoBubble({
             onPress={handleSubmit}
             disabled={!inputValue.trim() || isNaN(parseInt(inputValue, 10))}
             style={{
-              backgroundColor: inputValue.trim() && !isNaN(parseInt(inputValue, 10)) ? '#FFFFFF' : '#374151',
-              borderRadius: 12,
-              paddingVertical: 10,
-              paddingHorizontal: 16,
+              backgroundColor: inputValue.trim() && !isNaN(parseInt(inputValue, 10)) ? colors.primary : '#374151',
+              borderRadius: 10,
+              width: 44,
+              height: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Text
-              style={{
-                fontFamily: 'SpaceGrotesk_600SemiBold',
-                fontSize: 13,
-                color: inputValue.trim() && !isNaN(parseInt(inputValue, 10)) ? '#121212' : '#6B7280',
-              }}
-            >
-              Submit
-            </Text>
+            <Ionicons
+              name="checkmark"
+              size={20}
+              color={inputValue.trim() && !isNaN(parseInt(inputValue, 10)) ? '#121212' : '#6B7280'}
+            />
           </Pressable>
         </View>
 
         {/* Edit raw text button */}
         <Pressable
-          onPress={() => onEditRawText?.(event.id)}
+          onPress={() => onEditRawText?.(event.id, event.raw_text)}
           style={{
             borderRadius: 10,
             borderWidth: 1,
@@ -733,7 +831,16 @@ function FailedBubble({ event }: { event: SessionEvent }) {
 
 // --- Main component ---
 
-export function EventBubble({ event, onSelectSuggestion, onEditRawText, onSubmitMissingValue }: EventBubbleProps) {
+export function EventBubble({
+  event,
+  onSelectSuggestion,
+  onSelectClarificationOption,
+  onEditRawText,
+  onSubmitMissingValue,
+  onEdit,
+  onDelete,
+  skipEntranceAnimation,
+}: EventBubbleProps) {
   const isProcessing = event.status === 'queued' || event.status === 'processing';
   const needsMissingInfo =
     event.status === 'needs_clarification' &&
@@ -747,8 +854,41 @@ export function EventBubble({ event, onSelectSuggestion, onEditRawText, onSubmit
   const isParsed = event.status === 'completed' && !isAmbiguous;
   const isFailed = event.status === 'failed';
 
+  // Track previous status for transition animations
+  const prevStatus = usePrevious(event.status);
+  const contentScale = useSharedValue(1);
+
+  // Animate on status transition (processing → resolved)
+  useEffect(() => {
+    const wasProcessing = prevStatus === 'queued' || prevStatus === 'processing';
+    const isNowResolved =
+      event.status === 'completed' ||
+      event.status === 'needs_clarification' ||
+      event.status === 'failed';
+
+    if (wasProcessing && isNowResolved) {
+      contentScale.value = withSequence(
+        withTiming(0.97, { duration: 100 }),
+        withTiming(1, { duration: 200 })
+      );
+    }
+  }, [event.status, prevStatus, contentScale]);
+
+  const scaleStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: contentScale.value }],
+  }));
+
+  // Define entrance animation (only if not skipped)
+  const enteringAnimation = skipEntranceAnimation
+    ? undefined
+    : FadeInUp.duration(300).springify().damping(15);
+
   return (
-    <View style={{ gap: 4 }}>
+    <Animated.View
+      style={[{ gap: 4 }, scaleStyle]}
+      entering={enteringAnimation}
+      layout={LinearTransition.springify().damping(15)}
+    >
       {/* Timestamp */}
       <Text
         style={{
@@ -762,7 +902,7 @@ export function EventBubble({ event, onSelectSuggestion, onEditRawText, onSubmit
 
       {/* Bubble */}
       {isProcessing && <ProcessingBubble event={event} />}
-      {isParsed && <ParsedBubble event={event} />}
+      {isParsed && <ParsedBubble event={event} onEdit={onEdit} onDelete={onDelete} />}
       {needsMissingInfo && (
         <MissingInfoBubble
           event={event}
@@ -774,11 +914,12 @@ export function EventBubble({ event, onSelectSuggestion, onEditRawText, onSubmit
         <AmbiguousBubble
           event={event}
           onSelectSuggestion={onSelectSuggestion}
+          onSelectClarificationOption={onSelectClarificationOption}
           onEditRawText={onEditRawText}
         />
       )}
       {isFailed && <FailedBubble event={event} />}
-    </View>
+    </Animated.View>
   );
 }
 

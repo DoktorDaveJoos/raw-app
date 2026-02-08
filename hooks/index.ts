@@ -8,8 +8,11 @@ export {
   useFinishSession,
   useCreateAndStartSession,
   useCreateEvent,
+  useDeleteEvent,
+  useUpdateEvent,
   useSubmitFeedback,
   useSubmitClarification,
+  type ClarificationPayload,
 } from './useSessions';
 
 // Stats hooks

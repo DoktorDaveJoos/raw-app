@@ -5,7 +5,7 @@ export interface WeeklyStats {
   volume: number;
   workouts: number;
   workoutsTarget: number;
-  avgIntensity: number;
+  avgIntensity: number | null;
   totalTimeHours: number;
 }
 

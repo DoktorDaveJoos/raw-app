@@ -123,13 +123,13 @@ export default function HomeScreen() {
           onPress={handleStartWorkout}
           disabled={isStarting || isLoadingCurrent}
           style={({ pressed }) => ({
-            backgroundColor: pressed ? '#E5E5E5' : '#FFFFFF',
+            backgroundColor: pressed ? colors.primaryHover : colors.primary,
             height: 56,
             borderRadius: 16,
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 8,
+            gap: 10,
             opacity: isStarting || isLoadingCurrent ? 0.6 : 1,
           })}
         >

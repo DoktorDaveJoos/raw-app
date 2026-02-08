@@ -17,6 +17,9 @@ export interface BottomLoggerProps {
   onChangeText: (text: string) => void;
   onSend: (text: string) => void;
   disabled?: boolean;
+  editMode?: boolean;
+  editExerciseName?: string;
+  onCancelEdit?: () => void;
 }
 
 export function BottomLogger({
@@ -24,6 +27,9 @@ export function BottomLogger({
   onChangeText,
   onSend,
   disabled = false,
+  editMode = false,
+  editExerciseName,
+  onCancelEdit,
 }: BottomLoggerProps) {
   const handleSend = () => {
     if (value.trim() && !disabled) {
@@ -44,36 +50,77 @@ export function BottomLogger({
         borderTopColor: colors.borderSubtle,
       }}
     >
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
-      >
-        {SHORTCUT_TAGS.map((tag) => (
+      {editMode ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingBottom: 8,
+            width: '100%',
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <MaterialIcons name="edit" size={16} color={colors.primary} />
+            <Text
+              style={{
+                fontFamily: 'SpaceGrotesk_600SemiBold',
+                fontSize: 13,
+                color: colors.primary,
+              }}
+              numberOfLines={1}
+            >
+              Editing {editExerciseName}
+            </Text>
+          </View>
           <Pressable
-            key={tag.label}
-            onPress={() => onChangeText(value + tag.text)}
-            style={{
-              backgroundColor: colors.card,
-              borderRadius: 16,
-              paddingVertical: 6,
-              paddingHorizontal: 12,
-              borderWidth: 1,
-              borderColor: colors.borderSubtle,
-            }}
+            onPress={onCancelEdit}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
           >
+            <MaterialIcons name="close" size={14} color="#6B7280" />
             <Text
               style={{
                 fontFamily: 'SpaceGrotesk_500Medium',
                 fontSize: 13,
-                color: colors.textMuted,
+                color: '#6B7280',
               }}
             >
-              {tag.label}
+              Cancel
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
+        </View>
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
+        >
+          {SHORTCUT_TAGS.map((tag) => (
+            <Pressable
+              key={tag.label}
+              onPress={() => onChangeText(value + tag.text)}
+              style={{
+                backgroundColor: colors.card,
+                borderRadius: 16,
+                paddingVertical: 6,
+                paddingHorizontal: 12,
+                borderWidth: 1,
+                borderColor: colors.borderSubtle,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: 'SpaceGrotesk_500Medium',
+                  fontSize: 13,
+                  color: colors.textMuted,
+                }}
+              >
+                {tag.label}
+              </Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
       <View
         style={{
           backgroundColor: colors.card,
