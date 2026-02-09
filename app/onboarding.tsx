@@ -14,6 +14,7 @@ import {
   useSkipOnboardingStep,
   useCompleteOnboarding,
 } from '@/hooks';
+import { useAuth } from '@/lib/store/auth-context';
 import {
   OnboardingHeader,
   ProgressBar,
@@ -42,6 +43,7 @@ const WELCOME_MESSAGE =
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const { checkAuth } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
 
   const { data: status, isLoading: statusLoading } = useOnboardingStatus();
@@ -348,7 +350,10 @@ export default function OnboardingScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }} edges={['top']}>
         <CompletionScreen
           profileSummary={profileSummary}
-          onStartWorkout={() => router.replace('/(tabs)')}
+          onStartWorkout={async () => {
+            await checkAuth();
+            router.replace('/(tabs)');
+          }}
         />
       </SafeAreaView>
     );
