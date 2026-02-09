@@ -10,6 +10,10 @@ export const UserSchema = z.object({
   email_verified_at: z.string().nullable().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
+  profile: z.object({
+    id: z.number(),
+    onboarding_completed_at: z.string().nullable(),
+  }).nullable().optional(),
 });
 
 export type User = z.infer<typeof UserSchema>;
@@ -272,4 +276,43 @@ export interface ApiError {
 
 export interface ValidationError extends ApiError {
   errors: Record<string, string[]>;
+}
+
+// ============================================
+// Onboarding
+// ============================================
+export type OnboardingStepName = 'basics' | 'training' | 'goals' | 'gear' | 'equipment' | 'health';
+
+export interface OnboardingStatusResponse {
+  completed: boolean;
+  current_step: OnboardingStepName | null;
+  current_prompt: string | null;
+  progress: {
+    total: number;
+    completed: number;
+  };
+  steps: Record<OnboardingStepName, {
+    status: 'pending' | 'completed' | 'skipped';
+    parsed_data: Record<string, unknown> | null;
+  }>;
+}
+
+export interface OnboardingSubmitResponse {
+  step: OnboardingStepName;
+  parsed: Record<string, unknown>;
+  confidence: number;
+  next_step: OnboardingStepName | null;
+  next_prompt: string | null;
+}
+
+export interface OnboardingSkipResponse {
+  step: OnboardingStepName;
+  skipped: boolean;
+  next_step: OnboardingStepName | null;
+  next_prompt: string | null;
+}
+
+export interface OnboardingCompleteResponse {
+  message: string;
+  profile: Record<string, unknown>;
 }

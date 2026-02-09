@@ -57,3 +57,13 @@ export {
   updateUser,
   updatePassword,
 } from './user';
+
+// ============================================
+// Onboarding
+// ============================================
+export {
+  getOnboardingStatus,
+  submitOnboardingStep,
+  skipOnboardingStep,
+  completeOnboarding,
+} from './onboarding';
