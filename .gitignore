@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -41,6 +42,19 @@ app-example
 # generated native folders
 /ios
 /android
+
+# AI tool configs
+.agents/
+.codex/
+.cursor/
+.gemini/
+.junie/
+.kiro/
+.opencode/
+
+# Plans and images
+plans/
+images/
 
 # Visual testing output
 e2e/output/
