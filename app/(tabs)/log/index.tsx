@@ -67,9 +67,6 @@ export default function LogScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Pressable onPress={() => router.back()} hitSlop={8}>
-            <MaterialIcons name="chevron-left" size={24} color={colors.textPrimary} />
-          </Pressable>
           <Text style={styles.headerTitle}>Workout History</Text>
         </View>
         <Pressable hitSlop={8}>
@@ -183,7 +180,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headerTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontFamily: 'SpaceGrotesk_600SemiBold',
     color: colors.textPrimary,
   },
