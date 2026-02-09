@@ -310,7 +310,7 @@ function ParsedSymptomContent({ event }: { event: SessionEvent }) {
   const label = [symptom.body_part, symptom.symptom_type].filter(Boolean).join(' ');
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-      <MaterialIcons name="warning" size={16} color="#F59E0B" />
+      <MaterialIcons name="warning" size={16} color="#FFFFFF" />
       <Text
         style={{
           fontFamily: 'SpaceGrotesk_600SemiBold',

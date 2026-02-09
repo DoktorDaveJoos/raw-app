@@ -6,6 +6,7 @@ import {
   createSession,
   startSession,
   finishSession,
+  deleteSession,
   createAndStartSession,
   createEvent,
   updateEvent,
@@ -134,6 +135,18 @@ export function useCreateAndStartSession() {
 
   return useMutation({
     mutationFn: createAndStartSession,
+    onSuccess: () => {
+      invalidateSessions();
+    },
+  });
+}
+
+/**
+ * Hook to delete a session
+ */
+export function useDeleteSession() {
+  return useMutation({
+    mutationFn: (sessionId: number) => deleteSession(sessionId),
     onSuccess: () => {
       invalidateSessions();
     },

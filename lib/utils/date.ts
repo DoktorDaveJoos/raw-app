@@ -118,6 +118,20 @@ export function formatCardDate(dateString: string | null | undefined): string {
 }
 
 /**
+ * Format a date string to a long date (e.g., "Friday, January 31, 2025")
+ */
+export function formatLongDate(dateString: string | null | undefined): string {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
+
+/**
  * Format duration in seconds to "48 min" format
  */
 export function formatDurationMinutes(seconds: number | null | undefined): string {

@@ -7,6 +7,7 @@ export {
   useStartSession,
   useFinishSession,
   useCreateAndStartSession,
+  useDeleteSession,
   useCreateEvent,
   useDeleteEvent,
   useUpdateEvent,

@@ -1,14 +1,18 @@
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useMemo } from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { ChevronLeft, Share, Ellipsis, Timer, Trash2, CircleAlert } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
-import { useSession } from '@/hooks';
-import { formatDateTime, formatDuration, calculateDuration } from '@/lib/utils';
-import { TopExercisesTable, EventCard } from '@/components/session';
+import { useSession, useDeleteSession } from '@/hooks';
+import { formatLongDate, formatDurationMinutes, calculateDuration } from '@/lib/utils';
 import { Skeleton } from '@/components/ui';
-import type { SessionExercise } from '@/lib/api';
+import type { Set } from '@/lib/api';
+
+interface ExerciseGroup {
+  exerciseName: string;
+  sets: Set[];
+}
 
 export default function SessionDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,127 +20,125 @@ export default function SessionDetailsScreen() {
   const sessionId = isNaN(parsed) ? undefined : parsed;
 
   const { data: session, isLoading, isError, refetch } = useSession(sessionId);
+  const deleteSession = useDeleteSession();
 
   // Calculate stats from session data
   const stats = useMemo(() => {
     if (!session) {
-      return {
-        exercises: 0,
-        sets: 0,
-        reps: 0,
-        volume: 0,
-        duration: '00:00',
-      };
+      return { exercises: 0, sets: 0, volume: 0, duration: '0 min' };
     }
 
-    // Calculate total reps from events
-    const totalReps = session.session_events?.reduce((sum, event) => {
-      if (event.status !== 'completed' || !event.sets) return sum;
-      return sum + event.sets.reduce((setSum, set) => setSum + set.reps, 0);
-    }, 0) ?? session.reps_count ?? 0;
-
-    // Calculate duration
     const durationSeconds = session.duration_seconds ??
       calculateDuration(session.started_at, session.finished_at);
 
     return {
       exercises: session.exercises_count ?? 0,
       sets: session.sets_count ?? 0,
-      reps: totalReps,
       volume: session.volume_kg ?? 0,
-      duration: formatDuration(durationSeconds),
+      duration: formatDurationMinutes(durationSeconds),
     };
   }, [session]);
 
-  // Map session exercises to TopExercisesTable format
-  const exerciseSummaries = useMemo(() => {
-    if (!session?.session_exercises) return [];
-
-    return session.session_exercises.map((ex: SessionExercise) => ({
-      exercise_name: ex.exercise_name,
-      sets_count: ex.sets_count,
-      reps_count: ex.reps_count,
-      volume_kg: ex.volume_kg ?? 0,
-    }));
-  }, [session?.session_exercises]);
-
-  // Filter completed add_sets events for event log
-  const completedEvents = useMemo(() => {
+  // Group sets by exercise from completed add_sets events
+  const exerciseGroups = useMemo((): ExerciseGroup[] => {
     if (!session?.session_events) return [];
 
-    return session.session_events.filter(
-      (event) => event.status === 'completed' && event.type === 'add_sets'
-    );
+    const groupMap = new Map<string, Set[]>();
+
+    for (const event of session.session_events) {
+      if (event.status !== 'completed' || event.type !== 'add_sets') continue;
+      if (!event.exercise_name || !event.sets) continue;
+
+      const existing = groupMap.get(event.exercise_name) ?? [];
+      existing.push(...event.sets);
+      groupMap.set(event.exercise_name, existing);
+    }
+
+    // Renumber sets sequentially per exercise
+    return Array.from(groupMap.entries()).map(([exerciseName, sets]) => ({
+      exerciseName,
+      sets: sets.map((s, i) => ({ ...s, set_number: i + 1 })),
+    }));
   }, [session?.session_events]);
 
-  // Format the session date/time
-  const dateTimeDisplay = useMemo(() => {
-    if (!session?.started_at) return '';
-    return formatDateTime(session.started_at);
+  const longDate = useMemo(() => {
+    return formatLongDate(session?.started_at);
   }, [session?.started_at]);
 
   const handleBack = () => {
     router.navigate('/(tabs)/log');
   };
 
-  if (!sessionId) {
-    return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <Text className="font-sans text-neutral-400">Invalid session</Text>
-        <Pressable onPress={() => router.back()}>
-          <Text className="font-sans text-primary mt-4">Go back</Text>
-        </Pressable>
-      </SafeAreaView>
-    );
-  }
-
   const handleShare = () => {
     // TODO: Implement share functionality
-    console.log('Share session', sessionId);
   };
 
-  // Format volume for display
+  const handleMore = () => {
+    // TODO: Implement more options
+  };
+
+  const handleDelete = () => {
+    if (!sessionId) return;
+    Alert.alert(
+      'Delete Workout',
+      'Are you sure you want to delete this workout? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteSession.mutate(sessionId, {
+              onSuccess: () => router.navigate('/(tabs)/log'),
+            });
+          },
+        },
+      ],
+    );
+  };
+
+  const formatWeight = (set: Set): string => {
+    if (set.weight_kg === null || set.weight_kg === undefined) return 'BW';
+    return `${set.weight_kg} kg`;
+  };
+
   const formatVolume = (kg: number): string => {
     return kg.toLocaleString();
   };
 
+  if (!sessionId) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.mutedText}>Invalid session</Text>
+          <Pressable onPress={() => router.back()}>
+            <Text style={styles.linkText}>Go back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (isLoading) {
     return (
-      <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-        {/* Header Skeleton */}
-        <View className="flex-row items-center justify-between px-4 py-3">
-          <View className="p-2 w-10" />
-          <View className="flex-1 items-center">
-            <Skeleton width={160} height={22} borderRadius={4} style={{ marginBottom: 4 }} />
-            <Skeleton width={140} height={16} borderRadius={4} />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={{ width: 24 }} />
+            <Skeleton width={140} height={18} borderRadius={4} />
           </View>
-          <View className="p-2 w-10" />
+          <View style={styles.headerRight}>
+            <Skeleton width={20} height={20} borderRadius={4} />
+            <Skeleton width={20} height={20} borderRadius={4} />
+          </View>
         </View>
-
-        <ScrollView className="flex-1">
-          {/* Stats Skeleton */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="px-4 py-4"
-            contentContainerStyle={{ gap: 12 }}
-          >
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} width={100} height={72} borderRadius={16} />
-            ))}
-          </ScrollView>
-
-          {/* Top Exercises Skeleton */}
-          <View className="px-4 mt-4">
-            <Skeleton width={120} height={22} borderRadius={4} style={{ marginBottom: 16 }} />
-            <Skeleton width="100%" height={180} borderRadius={16} />
-          </View>
-
-          {/* Event Log Skeleton */}
-          <View className="px-4 mt-6">
-            <Skeleton width={100} height={22} borderRadius={4} style={{ marginBottom: 16 }} />
-            <Skeleton width="100%" height={200} borderRadius={24} style={{ marginBottom: 16 }} />
-            <Skeleton width="100%" height={180} borderRadius={24} />
+        <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+          <Skeleton width="100%" height={180} borderRadius={16} />
+          <View style={{ marginTop: 24 }}>
+            <Skeleton width={80} height={18} borderRadius={4} style={{ marginBottom: 12 }} />
+            <Skeleton width="100%" height={140} borderRadius={12} />
+            <View style={{ height: 12 }} />
+            <Skeleton width="100%" height={140} borderRadius={12} />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -145,25 +147,21 @@ export default function SessionDetailsScreen() {
 
   if (isError) {
     return (
-      <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-        <View className="flex-row items-center px-4 py-3">
-          <Pressable onPress={handleBack} className="p-2">
-            <MaterialIcons name="arrow-back" size={24} color="white" />
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Pressable onPress={handleBack} style={styles.headerLeft}>
+            <ChevronLeft size={24} color="white" />
+            <Text style={styles.headerTitle}>Workout Details</Text>
           </Pressable>
-          <Text className="font-sans-semibold flex-1 text-white text-lg text-center">Session</Text>
-          <View className="p-2 w-10" />
         </View>
-        <View className="flex-1 items-center justify-center px-6">
-          <MaterialIcons name="error-outline" size={48} color="#ef4444" />
-          <Text className="font-sans text-neutral-400 text-base mt-4">Failed to load session</Text>
-          <Text className="font-sans text-neutral-600 text-sm mt-1 text-center">
+        <View style={styles.centered}>
+          <CircleAlert size={48} color="#ef4444" />
+          <Text style={[styles.mutedText, { marginTop: 16 }]}>Failed to load session</Text>
+          <Text style={[styles.dimText, { marginTop: 4, textAlign: 'center' }]}>
             Check your connection and try again
           </Text>
-          <Pressable
-            onPress={() => refetch()}
-            className="mt-6 px-6 py-3 bg-surface border border-white/10 rounded-xl active:bg-surface-hover"
-          >
-            <Text className="font-sans-medium text-white">Retry</Text>
+          <Pressable onPress={() => refetch()} style={styles.retryButton}>
+            <Text style={styles.retryText}>Retry</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -172,99 +170,334 @@ export default function SessionDetailsScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center" edges={['top']}>
-        <MaterialIcons name="error-outline" size={48} color={colors.textDim} />
-        <Text className="font-sans text-neutral-400 text-base mt-4">Session not found</Text>
-        <Pressable
-          onPress={handleBack}
-          className="mt-4 px-4 py-2 bg-surface rounded-lg"
-        >
-          <Text className="font-sans text-white">Go Back</Text>
-        </Pressable>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <Pressable onPress={handleBack} style={styles.headerLeft}>
+            <ChevronLeft size={24} color="white" />
+            <Text style={styles.headerTitle}>Workout Details</Text>
+          </Pressable>
+        </View>
+        <View style={styles.centered}>
+          <CircleAlert size={48} color={colors.textDim} />
+          <Text style={[styles.mutedText, { marginTop: 16 }]}>Session not found</Text>
+          <Pressable onPress={handleBack} style={styles.retryButton}>
+            <Text style={styles.retryText}>Go Back</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3">
-        <Pressable onPress={handleBack} className="p-2">
-          <MaterialIcons name="arrow-back" size={24} color="white" />
+      <View style={styles.header}>
+        <Pressable onPress={handleBack} style={styles.headerLeft}>
+          <ChevronLeft size={24} color="white" />
+          <Text style={styles.headerTitle}>Workout Details</Text>
         </Pressable>
-        <View className="flex-1 items-center">
-          <Text className="font-sans-semibold text-white text-lg" numberOfLines={1}>
-            {session.title || 'Workout Session'}
-          </Text>
-          <Text className="font-sans text-neutral-500 text-sm">{dateTimeDisplay}</Text>
+        <View style={styles.headerRight}>
+          <Pressable onPress={handleShare}>
+            <Share size={20} color="white" />
+          </Pressable>
+          <Pressable onPress={handleMore}>
+            <Ellipsis size={20} color={colors.textDim} />
+          </Pressable>
         </View>
-        <Pressable onPress={handleShare} className="p-2">
-          <MaterialIcons name="share" size={24} color={colors.textMuted} />
-        </Pressable>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Stats Row */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="px-4 py-4"
-          contentContainerStyle={{ gap: 12 }}
-        >
-          <StatCard label="Exercises" value={stats.exercises.toString()} />
-          <StatCard label="Sets" value={stats.sets.toString()} />
-          <StatCard label="Reps" value={stats.reps.toString()} />
-          <StatCard label="Volume" value={formatVolume(stats.volume)} suffix="kg" />
-          <StatCard label="Duration" value={stats.duration} />
-        </ScrollView>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Summary Card */}
+        <View style={styles.summaryCard}>
+          {/* Title Row */}
+          <View style={styles.summaryTitleRow}>
+            <View style={styles.summaryTitleLeft}>
+              <Text style={styles.workoutName}>{session.title || 'Workout Session'}</Text>
+              <Text style={styles.workoutDate}>{longDate}</Text>
+            </View>
+            <View style={styles.durationBadge}>
+              <Timer size={14} color="#9CA3AF" />
+              <Text style={styles.durationText}>{stats.duration}</Text>
+            </View>
+          </View>
 
-        {/* Top Exercises */}
-        <View className="px-4 mt-4">
-          <Text className="font-sans-semibold text-white text-lg mb-4">Top Exercises</Text>
-          <TopExercisesTable exercises={exerciseSummaries} />
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statColumn}>
+              <Text style={styles.statValue}>{stats.exercises}</Text>
+              <Text style={styles.statLabel}>Exercises</Text>
+            </View>
+            <View style={styles.statColumn}>
+              <Text style={styles.statValue}>{stats.sets}</Text>
+              <Text style={styles.statLabel}>Sets</Text>
+            </View>
+            <View style={styles.statColumn}>
+              <Text style={styles.statValue}>{formatVolume(stats.volume)}</Text>
+              <Text style={styles.statLabel}>kg lifted</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Event Log */}
-        <View className="px-4 mt-6 pb-8">
-          <Text className="font-sans-semibold text-white text-lg mb-4">Event Log</Text>
-
-          {completedEvents.length === 0 ? (
-            <View className="bg-surface rounded-2xl border border-white/5 px-4 py-8 items-center">
-              <MaterialIcons name="history" size={32} color={colors.textDim} />
-              <Text className="font-sans text-neutral-500 text-sm mt-2">No events recorded</Text>
-            </View>
-          ) : (
-            completedEvents.map((event) => (
-              <View key={event.id} className="mb-4">
-                <EventCard
-                  exerciseName={event.exercise_name || 'Unknown Exercise'}
-                  rawText={event.raw_text}
-                  sets={event.sets || []}
-                  readOnly
-                />
+        {/* Exercises Section */}
+        {exerciseGroups.length > 0 && (
+          <View style={styles.exercisesSection}>
+            <Text style={styles.sectionTitle}>Exercises</Text>
+            {exerciseGroups.map((group) => (
+              <View key={group.exerciseName} style={styles.exerciseCard}>
+                <View style={styles.exerciseHeader}>
+                  <Text style={styles.exerciseName}>{group.exerciseName}</Text>
+                </View>
+                <View style={styles.setsContainer}>
+                  {group.sets.map((set, index) => (
+                    <View key={index} style={styles.setRow}>
+                      <View style={styles.setLeft}>
+                        <Text style={styles.setNumber}>{set.set_number}</Text>
+                        <Text style={styles.setDetail}>
+                          {set.reps} reps × {formatWeight(set)}
+                        </Text>
+                      </View>
+                      {set.rir !== null && set.rir !== undefined && (
+                        <Text style={styles.setRir}>@{set.rir} RIR</Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
               </View>
-            ))
-          )}
+            ))}
+          </View>
+        )}
+
+        {/* Delete Section */}
+        <View style={styles.deleteSection}>
+          <Pressable onPress={handleDelete} style={styles.deleteButton}>
+            <Trash2 size={18} color="#EF4444" />
+            <Text style={styles.deleteText}>Delete Workout</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-interface StatCardProps {
-  label: string;
-  value: string;
-  suffix?: string;
-}
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  mutedText: {
+    fontFamily: 'SpaceGrotesk',
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+  dimText: {
+    fontFamily: 'SpaceGrotesk',
+    color: '#6B7280',
+    fontSize: 13,
+  },
+  linkText: {
+    fontFamily: 'SpaceGrotesk',
+    color: colors.primary,
+    fontSize: 14,
+    marginTop: 16,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  retryText: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    color: 'white',
+    fontSize: 14,
+  },
 
-function StatCard({ label, value, suffix }: StatCardProps) {
-  return (
-    <View className="bg-surface rounded-2xl px-4 py-3 min-w-[100px] border border-white/5">
-      <Text className="font-sans text-neutral-500 text-xs uppercase tracking-wider mb-1">{label}</Text>
-      <View className="flex-row items-baseline">
-        <Text className="font-sans-bold text-white text-2xl">{value}</Text>
-        {suffix && <Text className="font-sans text-neutral-500 text-sm ml-1">{suffix}</Text>}
-      </View>
-    </View>
-  );
-}
+  // Header
+  header: {
+    height: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2A2A2A',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  headerTitle: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 15,
+    color: 'white',
+  },
+
+  // Scroll
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+
+  // Summary Card
+  summaryCard: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 20,
+    gap: 20,
+  },
+  summaryTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  summaryTitleLeft: {
+    flex: 1,
+    gap: 4,
+    marginRight: 12,
+  },
+  workoutName: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 22,
+    color: 'white',
+  },
+  workoutDate: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  durationText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 13,
+    color: 'white',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statColumn: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 28,
+    color: 'white',
+  },
+  statLabel: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    fontSize: 12,
+    color: '#6B7280',
+  },
+
+  // Exercises Section
+  exercisesSection: {
+    marginTop: 24,
+    gap: 12,
+  },
+  sectionTitle: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 16,
+    color: 'white',
+  },
+  exerciseCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    padding: 16,
+    gap: 12,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  exerciseName: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 15,
+    color: 'white',
+  },
+  setsContainer: {
+    gap: 8,
+  },
+  setRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  setLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  setNumber: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  setDetail: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    fontSize: 14,
+    color: 'white',
+  },
+  setRir: {
+    fontFamily: 'SpaceGrotesk_500Medium',
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+
+  // Delete Section
+  deleteSection: {
+    paddingTop: 8,
+    paddingBottom: 24,
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  deleteButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#EF44441A',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  deleteText: {
+    fontFamily: 'SpaceGrotesk_600SemiBold',
+    fontSize: 14,
+    color: '#EF4444',
+  },
+});

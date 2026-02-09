@@ -4,10 +4,10 @@ export const colors = {
   surface: '#1A1A1A',
   surfaceHover: '#252525',
 
-  // Primary (orange)
-  primary: '#F59E0B',
-  primaryHover: '#D97706',
-  accentMuted: '#fb923c',
+  // Primary
+  primary: '#FFFFFF',
+  primaryHover: '#E5E5E5',
+  accentMuted: '#9CA3AF',
 
   // UI elements
   chipBg: '#2A2A2A',

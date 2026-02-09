@@ -12,9 +12,9 @@ module.exports = {
         background: "#121212",
         surface: "#1A1A1A",
         "surface-hover": "#252525",
-        primary: "#F59E0B",
-        "primary-hover": "#D97706",
-        "accent-muted": "#fb923c",
+        primary: "#FFFFFF",
+        "primary-hover": "#E5E5E5",
+        "accent-muted": "#9CA3AF",
         "chip-bg": "#2A2A2A",
         "border-subtle": "#2A2A2A",
         card: "#1E1E1E",
@@ -32,7 +32,7 @@ module.exports = {
         mono: ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 20px -5px rgba(245, 158, 11, 0.3)",
+        glow: "0 0 20px -5px rgba(255, 255, 255, 0.3)",
       },
       borderRadius: {
         "2xl": "1rem",

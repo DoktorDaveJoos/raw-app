@@ -260,7 +260,9 @@ export default function LoggingScreen() {
     if (!sessionId) return;
     try {
       await finishSession.mutateAsync(sessionId);
-      router.replace(`/(tabs)/log/${sessionId}`);
+      router.dismiss();
+      router.navigate('/(tabs)/log');
+      router.push(`/(tabs)/log/${sessionId}`);
     } catch (error) {
       console.error('Failed to finish session:', error);
     }

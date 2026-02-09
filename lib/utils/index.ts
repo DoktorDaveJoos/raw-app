@@ -7,6 +7,7 @@ export {
   calculateDuration,
   formatCardDate,
   formatDurationMinutes,
+  formatLongDate,
 } from './date';
 
 export {

@@ -123,7 +123,7 @@ export default function HomeScreen() {
           onPress={handleStartWorkout}
           disabled={isStarting || isLoadingCurrent}
           style={({ pressed }) => ({
-            backgroundColor: pressed ? colors.primaryHover : colors.primary,
+            backgroundColor: pressed ? colors.neutral[200] : colors.white,
             height: 56,
             borderRadius: 16,
             flexDirection: 'row',
