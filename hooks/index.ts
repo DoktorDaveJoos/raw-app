@@ -18,3 +18,11 @@ export {
 
 // Stats hooks
 export { useWeeklyStats, type WeeklyStats } from './useWeeklyStats';
+
+// Onboarding hooks
+export {
+  useOnboardingStatus,
+  useSubmitOnboardingStep,
+  useSkipOnboardingStep,
+  useCompleteOnboarding,
+} from './useOnboarding';

@@ -38,7 +38,7 @@ export const unstable_settings = {
 };
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const segments = useSegments();
 
@@ -46,15 +46,23 @@ function RootLayoutNav() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inOnboarding = segments[0] === 'onboarding';
+    const isOnboarded = user?.profile?.onboarding_completed_at != null;
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Redirect to login if not authenticated
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // Redirect to home if authenticated but on auth screen
+      if (!isOnboarded) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/(tabs)');
+      }
+    } else if (isAuthenticated && !isOnboarded && !inOnboarding) {
+      router.replace('/onboarding');
+    } else if (isAuthenticated && isOnboarded && inOnboarding) {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments]);
+  }, [isAuthenticated, isLoading, segments, user]);
 
   if (isLoading) {
     return (
@@ -69,6 +77,7 @@ function RootLayoutNav() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="logging/[id]" options={{ headerShown: false, presentation: 'fullScreenModal' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
