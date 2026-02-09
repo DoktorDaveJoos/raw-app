@@ -262,26 +262,24 @@ export default function OnboardingScreen() {
   const handleCardSelect = useCallback(
     (value: string) => {
       setSelectedCard(value);
-      // For steps without multi-select, auto-submit on card selection
+      // For steps without multi-select, autofill input on card selection
       const config = STEP_CONFIGS[currentStep];
       if (!config.multiSelectChips) {
         const text = config.buildText({ cards: [value] });
-        if (text) handleSubmit(text);
+        if (text) setInputText(text);
       }
     },
-    [currentStep, handleSubmit],
+    [currentStep],
   );
 
   const handleChipSelect = useCallback((value: string) => {
     setSelectedChips([value]);
-    // Chips populate input, user sends manually or auto-submit for basics
     const config = STEP_CONFIGS[currentStep];
     const text = config.buildText({ chips: [value] });
     if (text) {
-      // Auto-submit for single-select chips (basics, training)
-      handleSubmit(text);
+      setInputText(text);
     }
-  }, [currentStep, handleSubmit]);
+  }, [currentStep]);
 
   const handleMultiSelectToggle = useCallback((value: string) => {
     setSelectedMultiSelect((prev) =>
