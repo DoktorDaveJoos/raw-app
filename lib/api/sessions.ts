@@ -220,11 +220,16 @@ function computeDuration(session: any): number | null {
  */
 export async function getSession(sessionId: number): Promise<WorkoutSessionDetails> {
   const response = await apiClient.get<{ data: RawWorkoutSessionDetails }>(`/sessions/${sessionId}`);
-  const raw = response.data.data;
+  const raw = response.data.data as any;
   const rawEvents = raw.session_events ?? raw.sessionEvents ?? [];
 
   return {
     ...raw,
+    finished_at: raw.finished_at ?? raw.completed_at ?? null,
+    duration_seconds: raw.duration_seconds ?? raw.summary_json?.duration_sec ?? computeDuration(raw),
+    exercises_count: raw.exercises_count ?? raw.summary_json?.exercises_count ?? 0,
+    sets_count: raw.sets_count ?? raw.summary_json?.sets_count ?? 0,
+    volume_kg: raw.volume_kg ?? raw.summary_json?.volume_kg ?? 0,
     session_events: rawEvents.map(transformSessionEvent),
   };
 }
