@@ -8,10 +8,9 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { colors } from '@/lib/theme';
 import { register, getErrorMessage, getValidationErrors } from '@/lib/api';
 import { useAuth } from '@/lib/store';
 
@@ -25,6 +24,7 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleRegister = async () => {
     if (!name || !email || !password || !passwordConfirmation) {
@@ -54,7 +54,6 @@ export default function RegisterScreen() {
         password_confirmation: passwordConfirmation,
       });
 
-      // Refresh auth state and go to app
       await checkAuth();
       router.replace('/(tabs)');
     } catch (err) {
@@ -80,41 +79,91 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      style={{ flex: 1, backgroundColor: '#121212' }}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="px-6 py-12">
-          {/* Header */}
-          <View className="mb-10 items-center">
-            <View className="h-16 w-16 bg-primary/20 rounded-2xl items-center justify-center mb-4">
-              <MaterialIcons name="person-add" size={32} color={colors.primary} />
+        <View style={{ paddingHorizontal: 24, paddingBottom: 34 }}>
+          {/* Logo Section */}
+          <View style={{ alignItems: 'center', gap: 12, marginBottom: 28 }}>
+            <View
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 14,
+                backgroundColor: '#FFFFFF',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 28,
+                  fontWeight: '700',
+                  color: '#121212',
+                  fontFamily: 'SpaceGrotesk_700Bold',
+                }}
+              >
+                R
+              </Text>
             </View>
-            <Text className="font-sans-bold text-3xl text-white">Create Account</Text>
-            <Text className="font-sans text-neutral-400 text-center mt-2">
-              Start tracking your workouts with AI
+            <Text
+              style={{
+                fontSize: 26,
+                fontWeight: '700',
+                color: '#FFFFFF',
+              }}
+            >
+              Create Account
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '500',
+                color: '#6B7280',
+              }}
+            >
+              Start tracking your progress today
             </Text>
           </View>
 
-          {/* Form */}
-          <View>
-            {/* Name Input */}
-            <View className="mb-4">
-              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Name</Text>
-              <View
-                className={`flex-row items-center bg-surface border rounded-xl overflow-hidden ${
-                  hasFieldError('name') ? 'border-red-500/50' : 'border-white/10'
-                }`}
+          {/* Form Section */}
+          <View style={{ gap: 14, marginBottom: 28 }}>
+            {/* Name Field */}
+            <View>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
               >
-                <View className="pl-4">
-                  <MaterialIcons name="person" size={20} color={colors.textDim} />
-                </View>
+                NAME
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: '#1E1E1E',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: hasFieldError('name') ? 'rgba(239, 68, 68, 0.5)' : '#2A2A2A',
+                  paddingHorizontal: 16,
+                  justifyContent: 'center',
+                }}
+              >
                 <TextInput
-                  className="font-sans flex-1 px-3 py-4 text-white"
-                  placeholder="Your name"
-                  placeholderTextColor={colors.textDim}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                  }}
+                  placeholder="Enter your name"
+                  placeholderTextColor="#4B5563"
                   autoCapitalize="words"
                   autoComplete="name"
                   value={name}
@@ -122,25 +171,45 @@ export default function RegisterScreen() {
                 />
               </View>
               {getFieldError('name') && (
-                <Text className="font-sans text-red-400 text-xs mt-1 ml-1">{getFieldError('name')}</Text>
+                <Text style={{ color: '#f87171', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                  {getFieldError('name')}
+                </Text>
               )}
             </View>
 
-            {/* Email Input */}
-            <View className="mb-4">
-              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Email</Text>
-              <View
-                className={`flex-row items-center bg-surface border rounded-xl overflow-hidden ${
-                  hasFieldError('email') ? 'border-red-500/50' : 'border-white/10'
-                }`}
+            {/* Email Field */}
+            <View>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
               >
-                <View className="pl-4">
-                  <MaterialIcons name="email" size={20} color={colors.textDim} />
-                </View>
+                EMAIL
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: '#1E1E1E',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: hasFieldError('email') ? 'rgba(239, 68, 68, 0.5)' : '#2A2A2A',
+                  paddingHorizontal: 16,
+                  justifyContent: 'center',
+                }}
+              >
                 <TextInput
-                  className="font-sans flex-1 px-3 py-4 text-white"
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.textDim}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                  }}
+                  placeholder="your@email.com"
+                  placeholderTextColor="#4B5563"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -150,100 +219,206 @@ export default function RegisterScreen() {
                 />
               </View>
               {getFieldError('email') && (
-                <Text className="font-sans text-red-400 text-xs mt-1 ml-1">{getFieldError('email')}</Text>
+                <Text style={{ color: '#f87171', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                  {getFieldError('email')}
+                </Text>
               )}
             </View>
 
-            {/* Password Input */}
-            <View className="mb-4">
-              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Password</Text>
-              <View
-                className={`flex-row items-center bg-surface border rounded-xl overflow-hidden ${
-                  hasFieldError('password') ? 'border-red-500/50' : 'border-white/10'
-                }`}
+            {/* Password Field */}
+            <View>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
               >
-                <View className="pl-4">
-                  <MaterialIcons name="lock" size={20} color={colors.textDim} />
-                </View>
+                PASSWORD
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: '#1E1E1E',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: hasFieldError('password') ? 'rgba(239, 68, 68, 0.5)' : '#2A2A2A',
+                  paddingHorizontal: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
                 <TextInput
-                  className="font-sans flex-1 px-3 py-4 text-white"
-                  placeholder="At least 8 characters"
-                  placeholderTextColor={colors.textDim}
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                  }}
+                  placeholder="Create a password"
+                  placeholderTextColor="#4B5563"
                   secureTextEntry={!showPassword}
                   autoComplete="password-new"
                   value={password}
                   onChangeText={setPassword}
                 />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="pr-4"
-                >
+                <Pressable onPress={() => setShowPassword(!showPassword)}>
                   <MaterialIcons
                     name={showPassword ? 'visibility-off' : 'visibility'}
                     size={20}
-                    color={colors.textDim}
+                    color="#6B7280"
                   />
                 </Pressable>
               </View>
               {getFieldError('password') && (
-                <Text className="font-sans text-red-400 text-xs mt-1 ml-1">{getFieldError('password')}</Text>
+                <Text style={{ color: '#f87171', fontSize: 12, marginTop: 4, marginLeft: 4 }}>
+                  {getFieldError('password')}
+                </Text>
               )}
             </View>
 
-            {/* Confirm Password Input */}
-            <View className="mb-4">
-              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Confirm Password</Text>
-              <View className="flex-row items-center bg-surface border border-white/10 rounded-xl overflow-hidden">
-                <View className="pl-4">
-                  <MaterialIcons name="lock-outline" size={20} color={colors.textDim} />
-                </View>
+            {/* Confirm Password Field */}
+            <View>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
+              >
+                CONFIRM PASSWORD
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: '#1E1E1E',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#2A2A2A',
+                  paddingHorizontal: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
                 <TextInput
-                  className="font-sans flex-1 px-3 py-4 text-white"
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                  }}
                   placeholder="Confirm your password"
-                  placeholderTextColor={colors.textDim}
-                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#4B5563"
+                  secureTextEntry={!showConfirmPassword}
                   autoComplete="password-new"
                   value={passwordConfirmation}
                   onChangeText={setPasswordConfirmation}
                 />
+                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                  <MaterialIcons
+                    name={showConfirmPassword ? 'visibility-off' : 'visibility'}
+                    size={20}
+                    color="#6B7280"
+                  />
+                </Pressable>
               </View>
             </View>
+          </View>
 
-            {/* Error Message */}
-            {error && (
-              <View className="flex-row items-center bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
-                <MaterialIcons name="error-outline" size={18} color="#ef4444" />
-                <Text className="font-sans text-red-400 text-sm ml-2 flex-1">{error}</Text>
-              </View>
-            )}
-
-            {/* Register Button */}
-            <Pressable
-              className={`bg-primary rounded-xl py-4 items-center mt-2 ${isLoading ? 'opacity-70' : 'active:opacity-80'}`}
+          {/* Error Message */}
+          {error && (
+            <View
               style={{
-                shadowColor: colors.primary,
-                shadowOpacity: 0.3,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderWidth: 1,
+                borderColor: 'rgba(239, 68, 68, 0.2)',
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginBottom: 16,
+              }}
+            >
+              <MaterialIcons name="error-outline" size={18} color="#ef4444" />
+              <Text
+                style={{
+                  color: '#f87171',
+                  fontSize: 14,
+                  marginLeft: 8,
+                  flex: 1,
+                }}
+              >
+                {error}
+              </Text>
+            </View>
+          )}
+
+          {/* Button Section */}
+          <View style={{ gap: 16 }}>
+            {/* Sign Up Button */}
+            <Pressable
+              style={{
+                height: 56,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isLoading ? 0.7 : 1,
               }}
               onPress={handleRegister}
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color="#000000" />
               ) : (
-                <Text className="font-sans-semibold text-white text-base">Create Account</Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: '#000000',
+                  }}
+                >
+                  Sign Up
+                </Text>
               )}
             </Pressable>
 
-            {/* Login Link */}
-            <View className="flex-row justify-center mt-8">
-              <Text className="font-sans text-neutral-400">Already have an account? </Text>
-              <Link href="/(auth)/login" asChild>
-                <Pressable>
-                  <Text className="font-sans-medium text-primary">Log In</Text>
-                </Pressable>
-              </Link>
+            {/* Footer */}
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '500',
+                  color: '#6B7280',
+                }}
+              >
+                Already have an account?
+              </Text>
+              <Pressable onPress={() => router.push('/(auth)/login')}>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    fontWeight: '700',
+                    color: '#FFFFFF',
+                  }}
+                >
+                  Log In
+                </Text>
+              </Pressable>
             </View>
           </View>
         </View>

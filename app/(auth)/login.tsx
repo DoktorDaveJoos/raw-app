@@ -8,11 +8,10 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { Link, router } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '@/lib/store';
-import { colors } from '@/lib/theme';
 import { getErrorMessage } from '@/lib/api';
 
 export default function LoginScreen() {
@@ -33,7 +32,6 @@ export default function LoginScreen() {
       const result = await signIn(email, password);
 
       if (!result.success && result.twoFactorRequired) {
-        // 2FA required - navigate to 2FA screen with token
         router.push({
           pathname: '/(auth)/two-factor',
           params: { two_factor_token: result.twoFactorToken },
@@ -41,7 +39,6 @@ export default function LoginScreen() {
         return;
       }
 
-      // Successful login
       router.replace('/(tabs)');
     } catch (err: any) {
       setError(getErrorMessage(err));
@@ -51,37 +48,93 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-background"
+      style={{ flex: 1, backgroundColor: '#121212' }}
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="px-6 py-12">
-          {/* Logo/Brand */}
-          <View className="mb-12 items-center">
-            <View className="h-20 w-20 bg-primary/20 rounded-2xl items-center justify-center mb-4">
-              <MaterialIcons name="fitness-center" size={40} color={colors.primary} />
+        <View style={{ paddingHorizontal: 24, paddingBottom: 34 }}>
+          {/* Logo Section */}
+          <View style={{ alignItems: 'center', gap: 16, marginBottom: 32 }}>
+            <View
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 16,
+                backgroundColor: '#FFFFFF',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 36,
+                  fontWeight: '700',
+                  color: '#121212',
+                  fontFamily: 'SpaceGrotesk_700Bold',
+                }}
+              >
+                R
+              </Text>
             </View>
-            <Text className="font-sans-bold text-4xl text-white">Raw</Text>
-            <Text className="font-sans text-neutral-400 text-center mt-2">
-              AI-Powered Workout Logging
+            <Text
+              style={{
+                fontSize: 32,
+                fontWeight: '700',
+                color: '#FFFFFF',
+                letterSpacing: 4,
+                fontFamily: 'SpaceGrotesk_700Bold',
+              }}
+            >
+              RAW
+            </Text>
+            <Text
+              style={{
+                fontSize: 14,
+                fontWeight: '500',
+                color: '#6B7280',
+              }}
+            >
+              Track your lifts. Own your progress.
             </Text>
           </View>
 
-          {/* Form */}
-          <View>
-            {/* Email Input */}
-            <View className="mb-4">
-              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Email</Text>
-              <View className="flex-row items-center bg-surface border border-white/10 rounded-xl overflow-hidden">
-                <View className="pl-4">
-                  <MaterialIcons name="email" size={20} color={colors.textDim} />
-                </View>
+          {/* Form Section */}
+          <View style={{ gap: 16, marginBottom: 32 }}>
+            {/* Email Field */}
+            <View>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
+              >
+                EMAIL
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: '#1E1E1E',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#2A2A2A',
+                  paddingHorizontal: 16,
+                  justifyContent: 'center',
+                }}
+              >
                 <TextInput
-                  className="font-sans flex-1 px-3 py-4 text-white"
-                  placeholder="you@example.com"
-                  placeholderTextColor={colors.textDim}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                  }}
+                  placeholder="Enter your email"
+                  placeholderTextColor="#4B5563"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -92,71 +145,161 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Password Input */}
-            <View className="mb-4">
-              <Text className="font-sans text-neutral-400 text-sm mb-2 ml-1">Password</Text>
-              <View className="flex-row items-center bg-surface border border-white/10 rounded-xl overflow-hidden">
-                <View className="pl-4">
-                  <MaterialIcons name="lock" size={20} color={colors.textDim} />
-                </View>
+            {/* Password Field */}
+            <View>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                  textTransform: 'uppercase',
+                  marginBottom: 8,
+                }}
+              >
+                PASSWORD
+              </Text>
+              <View
+                style={{
+                  height: 48,
+                  backgroundColor: '#1E1E1E',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#2A2A2A',
+                  paddingHorizontal: 16,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
                 <TextInput
-                  className="font-sans flex-1 px-3 py-4 text-white"
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    fontWeight: '500',
+                    color: '#FFFFFF',
+                  }}
                   placeholder="Enter your password"
-                  placeholderTextColor={colors.textDim}
+                  placeholderTextColor="#4B5563"
                   secureTextEntry={!showPassword}
                   autoComplete="password"
                   value={password}
                   onChangeText={setPassword}
                 />
-                <Pressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  className="pr-4"
-                >
+                <Pressable onPress={() => setShowPassword(!showPassword)}>
                   <MaterialIcons
                     name={showPassword ? 'visibility-off' : 'visibility'}
                     size={20}
-                    color={colors.textDim}
+                    color="#6B7280"
                   />
                 </Pressable>
               </View>
             </View>
+          </View>
 
-            {/* Error Message */}
-            {error && (
-              <View className="flex-row items-center bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
-                <MaterialIcons name="error-outline" size={18} color="#ef4444" />
-                <Text className="font-sans text-red-400 text-sm ml-2 flex-1">{error}</Text>
-              </View>
-            )}
-
-            {/* Login Button */}
-            <Pressable
-              className={`bg-primary rounded-xl py-4 items-center mt-2 ${isLoading ? 'opacity-70' : 'active:opacity-80'}`}
+          {/* Error Message */}
+          {error && (
+            <View
               style={{
-                shadowColor: colors.primary,
-                shadowOpacity: 0.3,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 4 },
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                borderWidth: 1,
+                borderColor: 'rgba(239, 68, 68, 0.2)',
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                marginBottom: 16,
+              }}
+            >
+              <MaterialIcons name="error-outline" size={18} color="#ef4444" />
+              <Text
+                style={{
+                  color: '#f87171',
+                  fontSize: 14,
+                  marginLeft: 8,
+                  flex: 1,
+                }}
+              >
+                {error}
+              </Text>
+            </View>
+          )}
+
+          {/* Button Section */}
+          <View style={{ gap: 16 }}>
+            {/* Log In Button */}
+            <Pressable
+              style={{
+                height: 56,
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isLoading ? 0.7 : 1,
               }}
               onPress={handleLogin}
               disabled={isLoading}
             >
               {isLoading ? (
-                <ActivityIndicator color="white" />
+                <ActivityIndicator color="#000000" />
               ) : (
-                <Text className="font-sans-semibold text-white text-base">Log In</Text>
+                <Text
+                  style={{
+                    fontSize: 16,
+                    fontWeight: '700',
+                    color: '#000000',
+                  }}
+                >
+                  Log In
+                </Text>
               )}
             </Pressable>
 
-            {/* Register Link */}
-            <View className="flex-row justify-center mt-8">
-              <Text className="font-sans text-neutral-400">Don't have an account? </Text>
-              <Link href="/(auth)/register" asChild>
-                <Pressable>
-                  <Text className="font-sans-medium text-primary">Register</Text>
-                </Pressable>
-              </Link>
+            {/* OR Divider */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <View style={{ flex: 1, height: 1, backgroundColor: '#2A2A2A' }} />
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '600',
+                  color: '#6B7280',
+                  letterSpacing: 1,
+                }}
+              >
+                OR
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: '#2A2A2A' }} />
             </View>
+
+            {/* Create Account Button */}
+            <Pressable
+              style={{
+                height: 56,
+                backgroundColor: '#1E1E1E',
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: '#2A2A2A',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={() => router.push('/(auth)/register')}
+            >
+              <Text
+                style={{
+                  fontSize: 16,
+                  fontWeight: '600',
+                  color: '#FFFFFF',
+                }}
+              >
+                Create Account
+              </Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
