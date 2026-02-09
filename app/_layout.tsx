@@ -49,6 +49,7 @@ function RootLayoutNav() {
     const inOnboarding = segments[0] === 'onboarding';
     const isOnboarded = user?.profile?.onboarding_completed_at != null;
 
+    // Guard: only navigate when needed to prevent loops
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
     } else if (isAuthenticated && inAuthGroup) {
@@ -62,7 +63,7 @@ function RootLayoutNav() {
     } else if (isAuthenticated && isOnboarded && inOnboarding) {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments, user]);
+  }, [isAuthenticated, isLoading, segments, user?.profile?.onboarding_completed_at]);
 
   if (isLoading) {
     return (
