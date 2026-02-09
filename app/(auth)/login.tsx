@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Eye, EyeOff, AlertCircle } from 'lucide-react-native';
 import { useAuth } from '@/lib/store';
 import { getErrorMessage } from '@/lib/api';
 
@@ -94,6 +94,7 @@ export default function LoginScreen() {
                 fontSize: 14,
                 fontWeight: '500',
                 color: '#6B7280',
+                fontFamily: 'SpaceGrotesk_500Medium',
               }}
             >
               Track your lifts. Own your progress.
@@ -101,7 +102,10 @@ export default function LoginScreen() {
           </View>
 
           {/* Form Section */}
-          <View style={{ gap: 16, marginBottom: 32 }}>
+          <View
+            role={Platform.OS === 'web' ? 'form' : undefined}
+            style={{ gap: 16, marginBottom: 32 }}
+          >
             {/* Email Field */}
             <View>
               <Text
@@ -112,6 +116,7 @@ export default function LoginScreen() {
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                   marginBottom: 8,
+                  fontFamily: 'SpaceGrotesk_600SemiBold',
                 }}
               >
                 EMAIL
@@ -132,6 +137,7 @@ export default function LoginScreen() {
                     fontSize: 14,
                     fontWeight: '500',
                     color: '#FFFFFF',
+                    fontFamily: 'SpaceGrotesk_500Medium',
                   }}
                   placeholder="Enter your email"
                   placeholderTextColor="#4B5563"
@@ -155,6 +161,7 @@ export default function LoginScreen() {
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                   marginBottom: 8,
+                  fontFamily: 'SpaceGrotesk_600SemiBold',
                 }}
               >
                 PASSWORD
@@ -177,6 +184,7 @@ export default function LoginScreen() {
                     fontSize: 14,
                     fontWeight: '500',
                     color: '#FFFFFF',
+                    fontFamily: 'SpaceGrotesk_500Medium',
                   }}
                   placeholder="Enter your password"
                   placeholderTextColor="#4B5563"
@@ -186,11 +194,11 @@ export default function LoginScreen() {
                   onChangeText={setPassword}
                 />
                 <Pressable onPress={() => setShowPassword(!showPassword)}>
-                  <MaterialIcons
-                    name={showPassword ? 'visibility-off' : 'visibility'}
-                    size={20}
-                    color="#6B7280"
-                  />
+                  {showPassword ? (
+                    <EyeOff size={20} color="#6B7280" />
+                  ) : (
+                    <Eye size={20} color="#6B7280" />
+                  )}
                 </Pressable>
               </View>
             </View>
@@ -211,13 +219,14 @@ export default function LoginScreen() {
                 marginBottom: 16,
               }}
             >
-              <MaterialIcons name="error-outline" size={18} color="#ef4444" />
+              <AlertCircle size={18} color="#ef4444" />
               <Text
                 style={{
                   color: '#f87171',
                   fontSize: 14,
                   marginLeft: 8,
                   flex: 1,
+                  fontFamily: 'SpaceGrotesk_400Regular',
                 }}
               >
                 {error}
@@ -248,6 +257,7 @@ export default function LoginScreen() {
                     fontSize: 16,
                     fontWeight: '700',
                     color: '#000000',
+                    fontFamily: 'SpaceGrotesk_700Bold',
                   }}
                 >
                   Log In
@@ -270,6 +280,7 @@ export default function LoginScreen() {
                   fontWeight: '600',
                   color: '#6B7280',
                   letterSpacing: 1,
+                  fontFamily: 'SpaceGrotesk_600SemiBold',
                 }}
               >
                 OR
@@ -295,6 +306,7 @@ export default function LoginScreen() {
                   fontSize: 16,
                   fontWeight: '600',
                   color: '#FFFFFF',
+                  fontFamily: 'SpaceGrotesk_600SemiBold',
                 }}
               >
                 Create Account
