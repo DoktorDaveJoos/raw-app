@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getWeeklyStats } from '@/lib/api';
-import { queryKeys } from '@/lib/store';
+import { queryKeys, useAuth } from '@/lib/store';
 
 export interface WeeklyStats {
   volume: number;
@@ -14,6 +14,8 @@ export interface WeeklyStats {
  * Hook to fetch weekly stats from the API
  */
 export function useWeeklyStats() {
+  const { isAuthenticated } = useAuth();
+
   return useQuery({
     queryKey: queryKeys.weeklyStats,
     queryFn: async (): Promise<WeeklyStats> => {
@@ -26,6 +28,7 @@ export function useWeeklyStats() {
         totalTimeHours: data.duration_hours,
       };
     },
+    enabled: isAuthenticated,
     // Refresh every 5 minutes
     staleTime: 5 * 60 * 1000,
   });

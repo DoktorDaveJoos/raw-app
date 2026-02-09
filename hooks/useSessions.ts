@@ -14,7 +14,7 @@ import {
   submitFeedback,
   submitClarification,
 } from '@/lib/api';
-import { queryKeys, invalidateSessions, invalidateSession } from '@/lib/store';
+import { queryKeys, invalidateSessions, invalidateSession, useAuth } from '@/lib/store';
 import type { WorkoutSessionSummary, WorkoutSessionDetails, SessionEvent } from '@/lib/api';
 
 interface UseSessionsOptions {
@@ -27,11 +27,12 @@ interface UseSessionsOptions {
  */
 export function useSessions(options: UseSessionsOptions = {}) {
   const { status, enabled = true } = options;
+  const { isAuthenticated } = useAuth();
 
   return useQuery({
     queryKey: queryKeys.sessions.list({ status }),
     queryFn: () => getSessions({ status }),
-    enabled,
+    enabled: enabled && isAuthenticated,
   });
 }
 
@@ -40,10 +41,12 @@ export function useSessions(options: UseSessionsOptions = {}) {
  * Uses structuralSharing to preserve optimistic events during polling
  */
 export function useSession(sessionId: number | undefined) {
+  const { isAuthenticated } = useAuth();
+
   return useQuery({
     queryKey: queryKeys.sessions.detail(sessionId!),
     queryFn: () => getSession(sessionId!),
-    enabled: !!sessionId,
+    enabled: !!sessionId && isAuthenticated,
     structuralSharing: (oldData, newData) => {
       if (!oldData || !newData) return newData;
 
@@ -76,8 +79,11 @@ export function useSession(sessionId: number | undefined) {
  * Hook to get current in-progress session
  */
 export function useCurrentSession() {
+  const { isAuthenticated } = useAuth();
+
   return useQuery({
     queryKey: queryKeys.sessions.current,
+    enabled: isAuthenticated,
     queryFn: async () => {
       const response = await getSessions({ status: 'in_progress', per_page: 1 });
       return response.data.length > 0 ? response.data[0] : null;
