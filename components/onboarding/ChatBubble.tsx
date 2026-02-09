@@ -39,7 +39,21 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
       ? Object.entries(parsedData)
           .filter(([, v]) => v != null && v !== '')
           .map(([key, value]) => {
-            if (Array.isArray(value)) return value.join(', ');
+            if (Array.isArray(value)) {
+              // Handle arrays of objects (e.g., compounds)
+              const mapped = value.map((item) => {
+                if (typeof item === 'object' && item !== null) {
+                  // For objects, try to extract the "name" field, or join all values
+                  return item.name || Object.values(item).filter(Boolean).join(' ');
+                }
+                return String(item);
+              });
+              return mapped.join(', ');
+            }
+            if (typeof value === 'object') {
+              // Handle nested objects by converting to readable format
+              return Object.values(value).filter(Boolean).join(', ');
+            }
             return `${key}: ${value}`;
           })
       : [];

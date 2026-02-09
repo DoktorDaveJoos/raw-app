@@ -61,6 +61,7 @@ export default function OnboardingScreen() {
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [selectedMultiSelect, setSelectedMultiSelect] = useState<string[]>([]);
+  const [autofilledText, setAutofilledText] = useState('');
 
   // Profile summary for completion screen
   const [profileSummary, setProfileSummary] = useState<Record<string, string>>({});
@@ -117,6 +118,7 @@ export default function OnboardingScreen() {
     setSelectedChips([]);
     setSelectedMultiSelect([]);
     setInputText('');
+    setAutofilledText('');
   }, []);
 
   const advanceToNextStep = useCallback(
@@ -262,11 +264,11 @@ export default function OnboardingScreen() {
   const handleCardSelect = useCallback(
     (value: string) => {
       setSelectedCard(value);
-      // For steps without multi-select, autofill input on card selection
       const config = STEP_CONFIGS[currentStep];
-      if (!config.multiSelectChips) {
-        const text = config.buildText({ cards: [value] });
-        if (text) setInputText(text);
+      const text = config.buildText({ cards: [value] });
+      if (text) {
+        setInputText(text);
+        setAutofilledText(text);
       }
     },
     [currentStep],
@@ -278,6 +280,7 @@ export default function OnboardingScreen() {
     const text = config.buildText({ chips: [value] });
     if (text) {
       setInputText(text);
+      setAutofilledText(text);
     }
   }, [currentStep]);
 
@@ -289,18 +292,44 @@ export default function OnboardingScreen() {
 
   const handleSend = useCallback(() => {
     const config = STEP_CONFIGS[currentStep];
-    // Build text from selections if present, otherwise use input text
     let text = inputText.trim();
 
-    if (selectedCard || selectedMultiSelect.length > 0) {
+    // Case 1: No selections at all - use user input as-is
+    if (!selectedCard && selectedMultiSelect.length === 0) {
+      if (text) handleSubmit(text);
+      return;
+    }
+
+    // Case 2: Has selections - merge intelligently
+    const hasMultiSelect = selectedMultiSelect.length > 0;
+
+    // Detect if user edited the autofilled text
+    const userEdited = autofilledText && text && text !== autofilledText;
+
+    if (userEdited && hasMultiSelect) {
+      // User edited + has multi-select: keep edits, append multi-select
+      const multiSelectText = config.buildText({
+        multiSelect: selectedMultiSelect
+      });
+
+      if (multiSelectText) {
+        text = text.trim().endsWith('.')
+          ? `${text} ${multiSelectText}`
+          : `${text}. ${multiSelectText}`;
+      }
+    } else if (userEdited && !hasMultiSelect) {
+      // User edited but no multi-select: use edited text as-is
+      // (text already set, no changes needed)
+    } else {
+      // User didn't edit: use full buildText()
       text = config.buildText({
         cards: selectedCard ? [selectedCard] : undefined,
-        multiSelect: selectedMultiSelect.length > 0 ? selectedMultiSelect : undefined,
+        multiSelect: hasMultiSelect ? selectedMultiSelect : undefined,
       });
     }
 
     if (text) handleSubmit(text);
-  }, [currentStep, inputText, selectedCard, selectedMultiSelect, handleSubmit]);
+  }, [currentStep, inputText, selectedCard, selectedMultiSelect, autofilledText, handleSubmit]);
 
   // Loading state
   if (statusLoading || !initialized) {
