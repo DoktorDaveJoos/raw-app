@@ -36,7 +36,7 @@ interface ChatMessage {
   isWelcome?: boolean;
 }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 const WELCOME_MESSAGE =
   "I'm going to ask you a few questions to personalize your experience. This helps me understand your training and give better recommendations.";
@@ -230,6 +230,28 @@ export default function OnboardingScreen() {
 
             // Pass parsed data if advancing to 'units' from 'welcome'
             const parsedToPass = currentStep === 'welcome' ? data.parsed : undefined;
+
+            // Auto-skip gear_followup if user is not enhanced or already provided compounds
+            if (
+              data.next_step === 'gear_followup' &&
+              (data.parsed.is_enhanced !== true ||
+                (Array.isArray(data.parsed.compounds) && data.parsed.compounds.length > 0))
+            ) {
+              setIsSubmitting(true);
+              skipStep.mutate('gear_followup', {
+                onSuccess: (skipData) => {
+                  setIsSubmitting(false);
+                  advanceToNextStep(skipData.next_step, skipData.next_prompt);
+                },
+                onError: () => {
+                  setIsSubmitting(false);
+                  // Fallback: show gear_followup normally
+                  advanceToNextStep(data.next_step, data.next_prompt);
+                },
+              });
+              return;
+            }
+
             advanceToNextStep(data.next_step, data.next_prompt, parsedToPass);
           },
           onError: () => {
@@ -246,7 +268,7 @@ export default function OnboardingScreen() {
         },
       );
     },
-    [currentStep, isSubmitting, submitStep, advanceToNextStep],
+    [currentStep, isSubmitting, submitStep, skipStep, advanceToNextStep],
   );
 
   const handleSkip = useCallback(() => {
