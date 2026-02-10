@@ -29,8 +29,8 @@ export function OnboardingInputBar({
       style={{
         backgroundColor: '#1A1A1A',
         paddingTop: 12,
-        paddingHorizontal: 20,
-        paddingBottom: 34,
+        paddingHorizontal: 16,
+        paddingBottom: 28,
         borderTopWidth: 1,
         borderTopColor: '#2A2A2A',
         gap: 12,
@@ -38,45 +38,47 @@ export function OnboardingInputBar({
     >
       <View
         style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 12,
+          position: 'relative',
+          height: 80,
+          backgroundColor: '#1E1E1E',
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: '#2A2A2A',
         }}
       >
-        <View
+        <TextInput
           style={{
-            flex: 1,
-            backgroundColor: '#1E1E1E',
-            borderRadius: 24,
-            height: 48,
-            borderWidth: 1,
-            borderColor: '#2A2A2A',
-            justifyContent: 'center',
-            paddingHorizontal: 16,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            paddingTop: 14,
+            paddingBottom: 14,
+            paddingLeft: 20,
+            paddingRight: 60,
+            fontFamily: 'SpaceGrotesk_400Regular',
+            fontSize: 15,
+            color: '#FFFFFF',
           }}
-        >
-          <TextInput
-            style={{
-              fontFamily: 'SpaceGrotesk_400Regular',
-              fontSize: 15,
-              color: '#FFFFFF',
-            }}
-            placeholder={placeholder}
-            placeholderTextColor="#6B7280"
-            value={value}
-            onChangeText={onChangeText}
-            editable={!disabled}
-            returnKeyType="send"
-            onSubmitEditing={canSend ? onSend : undefined}
-          />
-        </View>
+          placeholder={placeholder}
+          placeholderTextColor="#6B7280"
+          value={value}
+          onChangeText={onChangeText}
+          editable={!disabled}
+          multiline={true}
+          textAlignVertical="top"
+        />
         <Pressable
           onPress={onSend}
           disabled={!canSend}
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 24,
+            position: 'absolute',
+            right: 12,
+            top: 18,
+            width: 44,
+            height: 44,
+            borderRadius: 22,
             backgroundColor: '#FFFFFF',
             alignItems: 'center',
             justifyContent: 'center',

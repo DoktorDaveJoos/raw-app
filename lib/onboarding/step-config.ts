@@ -9,6 +9,8 @@ export interface CardOption {
   label: string;
   value: string;
   icon: string; // MaterialIcons name
+  iconColor?: string;
+  textColor?: string;
 }
 
 export interface StepConfig {
@@ -141,9 +143,9 @@ export const STEP_CONFIGS: Record<OnboardingStepName, StepConfig> = {
   gear: {
     placeholder: 'Or describe your stack...',
     cardOptions: [
-      { label: 'Natural / Natty', value: 'natural', icon: 'eco' },
+      { label: 'Natural / Natty', value: 'natural', icon: 'eco', iconColor: '#22C55E' },
       { label: 'Enhanced / Using PEDs', value: 'enhanced', icon: 'medication' },
-      { label: 'Prefer not to say', value: 'prefer_not_to_say', icon: 'visibility-off' },
+      { label: 'Prefer not to say', value: 'prefer_not_to_say', icon: 'visibility-off', textColor: '#9CA3AF' },
     ],
     multiSelectChips: [
       { label: 'Creatine', value: 'creatine' },
@@ -205,7 +207,8 @@ export const STEP_CONFIGS: Record<OnboardingStepName, StepConfig> = {
       { label: 'Shoulder issues', value: 'shoulder_issues', icon: 'radio-button-unchecked' },
       { label: 'Lower back pain', value: 'lower_back_pain', icon: 'radio-button-unchecked' },
       { label: 'Knee problems', value: 'knee_problems', icon: 'radio-button-unchecked' },
-      { label: 'No injuries', value: 'no_injuries', icon: 'check-circle' },
+      { label: 'Other', value: 'other', icon: 'radio-button-unchecked' },
+      { label: 'No injuries \u2014 I\'m good!', value: 'no_injuries', icon: 'check-circle' },
     ],
     sectionLabels: ['COMMON ISSUES'],
     buildText: ({ cards }) => {

@@ -7,9 +7,11 @@ interface OptionCardProps {
   icon: string;
   selected: boolean;
   onSelect: (value: string) => void;
+  iconColor?: string;
+  textColor?: string;
 }
 
-export function OptionCard({ label, value, icon, selected, onSelect }: OptionCardProps) {
+export function OptionCard({ label, value, icon, selected, onSelect, iconColor, textColor }: OptionCardProps) {
   return (
     <Pressable
       onPress={() => onSelect(value)}
@@ -29,13 +31,13 @@ export function OptionCard({ label, value, icon, selected, onSelect }: OptionCar
       <MaterialIcons
         name={icon as keyof typeof MaterialIcons.glyphMap}
         size={20}
-        color={selected ? '#121212' : '#9CA3AF'}
+        color={selected ? '#121212' : (iconColor ?? '#9CA3AF')}
       />
       <Text
         style={{
           fontFamily: selected ? 'SpaceGrotesk_600SemiBold' : 'SpaceGrotesk_500Medium',
           fontSize: 15,
-          color: selected ? '#121212' : '#FFFFFF',
+          color: selected ? '#121212' : (textColor ?? '#FFFFFF'),
           flex: 1,
         }}
       >

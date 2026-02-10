@@ -499,6 +499,8 @@ export default function OnboardingScreen() {
                       icon={card.icon}
                       selected={selectedCard === card.value}
                       onSelect={handleCardSelect}
+                      iconColor={card.iconColor}
+                      textColor={card.textColor}
                     />
                   ))}
                 </View>
@@ -550,7 +552,11 @@ export default function OnboardingScreen() {
           disabled={isSubmitting}
           placeholder={stepConfig.placeholder}
           isLastStep={isLastStep}
-          skipText={currentStep === 'health_followup' ? 'Skip \u2014 finish setup' : undefined}
+          skipText={
+            currentStep === 'health_followup' ? 'Skip \u2014 finish setup' :
+            currentStep === 'gear_followup' ? 'Skip \u2014 I\'d rather not say' :
+            undefined
+          }
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

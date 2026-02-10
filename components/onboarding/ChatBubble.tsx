@@ -151,7 +151,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome, showPrivacyNo
             <Text
               style={{
                 fontFamily: 'SpaceGrotesk_700Bold',
-                fontSize: 12,
+                fontSize: 14,
                 color: '#121212',
               }}
             >
@@ -179,7 +179,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome, showPrivacyNo
         }}
       >
         {isWelcome ? (
-          <>
+          <View style={{ gap: 4 }}>
             <Text
               style={{
                 fontFamily: 'SpaceGrotesk_600SemiBold',
@@ -199,7 +199,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome, showPrivacyNo
             >
               {content}
             </Text>
-          </>
+          </View>
         ) : (
           <Text
             style={{
