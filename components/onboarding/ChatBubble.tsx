@@ -1,13 +1,15 @@
 import { View, Text } from 'react-native';
+import { PrivacyNote } from './PrivacyNote';
 
 interface ChatBubbleProps {
   type: 'ai' | 'user' | 'confirm';
   content: string;
   parsedData?: Record<string, unknown>;
   isWelcome?: boolean;
+  showPrivacyNote?: boolean;
 }
 
-export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleProps) {
+export function ChatBubble({ type, content, parsedData, isWelcome, showPrivacyNote }: ChatBubbleProps) {
   if (type === 'user') {
     return (
       <View style={{ alignItems: 'flex-end', width: '100%' }}>
@@ -37,8 +39,11 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
   if (type === 'confirm') {
     const tags = parsedData
       ? Object.entries(parsedData)
-          .filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0))
+          .filter(([key, v]) => key !== 'confidence' && v != null && v !== '' && !(Array.isArray(v) && v.length === 0))
           .map(([key, value]) => {
+            // Gear step fields
+            if (key === 'is_enhanced') return value ? 'Enhanced' : 'Natural';
+
             // Welcome step fields
             if (key === 'age') return `Age: ${value}`;
             if (key === 'gender') {
@@ -50,6 +55,14 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
 
             // Units step field
             if (key === 'unit_preference') return value === 'kg' ? 'Kilograms' : 'Pounds';
+
+            // Health step: injuries array
+            if (key === 'injuries' && Array.isArray(value)) {
+              return value.map((item: { body_part?: string }) => {
+                return item.body_part?.replace(/_/g, ' ') || 'Injury';
+              }).join(', ');
+            }
+            if (key === 'movements_to_avoid') return null; // Don't show as tag
 
             // Handle arrays of objects (e.g., compounds)
             if (Array.isArray(value)) {
@@ -68,6 +81,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
             }
             return `${key}: ${value}`;
           })
+          .filter((tag): tag is string => tag != null)
       : [];
 
     return (
@@ -161,7 +175,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
           backgroundColor: '#1E1E1E',
           borderRadius: 16,
           padding: 16,
-          gap: isWelcome ? 4 : 8,
+          gap: 12,
         }}
       >
         {isWelcome ? (
@@ -197,6 +211,11 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
           >
             {content}
           </Text>
+        )}
+
+        {/* Privacy note - only for gear step */}
+        {showPrivacyNote && (
+          <PrivacyNote text="This info is private and only used for recommendations" />
         )}
       </View>
     </View>

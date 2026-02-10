@@ -22,10 +22,17 @@ import {
   OptionCard,
   OptionChip,
   SectionLabel,
+  PrivacyNote,
   OnboardingInputBar,
   CompletionScreen,
 } from '@/components/onboarding';
-import { STEP_CONFIGS, STEP_ORDER, getStepNumber } from '@/lib/onboarding/step-config';
+import {
+  STEP_CONFIGS,
+  getDisplayStepNumber,
+  VISIBLE_TOTAL_STEPS,
+  HEALTH_FOLLOWUP_OPTIONS,
+  HEALTH_FOLLOWUP_PLACEHOLDERS,
+} from '@/lib/onboarding/step-config';
 import type { OnboardingStepName } from '@/lib/api';
 
 interface ChatMessage {
@@ -34,9 +41,8 @@ interface ChatMessage {
   content: string;
   parsedData?: Record<string, unknown>;
   isWelcome?: boolean;
+  showPrivacyNote?: boolean;
 }
-
-const TOTAL_STEPS = 8;
 
 const WELCOME_MESSAGE =
   "I'm going to ask you a few questions to personalize your experience. This helps me understand your training and give better recommendations.";
@@ -65,6 +71,9 @@ export default function OnboardingScreen() {
   const [selectedMultiSelect, setSelectedMultiSelect] = useState<string[]>([]);
   const [autofilledText, setAutofilledText] = useState('');
 
+  // Health follow-up state
+  const [healthInjuryArea, setHealthInjuryArea] = useState<string | null>(null);
+
   // Profile summary for completion screen
   const [profileSummary, setProfileSummary] = useState<Record<string, string>>({});
 
@@ -78,7 +87,7 @@ export default function OnboardingScreen() {
     }
 
     const step = status.current_step ?? 'welcome';
-    const stepNum = getStepNumber(step);
+    const stepNum = getDisplayStepNumber(step);
     setCurrentStep(step);
     setStepNumber(stepNum);
 
@@ -99,6 +108,7 @@ export default function OnboardingScreen() {
         id: `prompt-${step}`,
         type: 'ai',
         content: status.current_prompt,
+        showPrivacyNote: step === 'gear',
       });
     }
 
@@ -151,7 +161,7 @@ export default function OnboardingScreen() {
 
       resetStepSelections();
       setCurrentStep(nextStep);
-      setStepNumber(getStepNumber(nextStep));
+      setStepNumber(getDisplayStepNumber(nextStep));
 
       const newMessages: ChatMessage[] = [];
 
@@ -171,6 +181,7 @@ export default function OnboardingScreen() {
         id: `prompt-${nextStep}`,
         type: 'ai' as const,
         content: nextPrompt,
+        showPrivacyNote: nextStep === 'gear',
       });
 
       setMessages((prev) => [...prev, ...newMessages]);
@@ -252,6 +263,31 @@ export default function OnboardingScreen() {
               return;
             }
 
+            // Auto-skip health_followup if no injuries
+            if (
+              data.next_step === 'health_followup' &&
+              (!Array.isArray(data.parsed.injuries) || data.parsed.injuries.length === 0)
+            ) {
+              setIsSubmitting(true);
+              skipStep.mutate('health_followup', {
+                onSuccess: (skipData) => {
+                  setIsSubmitting(false);
+                  advanceToNextStep(skipData.next_step, skipData.next_prompt);
+                },
+                onError: () => {
+                  setIsSubmitting(false);
+                  advanceToNextStep(data.next_step, data.next_prompt);
+                },
+              });
+              return;
+            }
+
+            // Store body_part for health_followup dynamic options
+            if (data.next_step === 'health_followup' && Array.isArray(data.parsed.injuries) && data.parsed.injuries.length > 0) {
+              const bodyPart = (data.parsed.injuries[0] as { body_part?: string }).body_part ?? '';
+              setHealthInjuryArea(bodyPart.replace(/_issues$/, '').replace(/_pain$/, '').replace(/_problems$/, ''));
+            }
+
             advanceToNextStep(data.next_step, data.next_prompt, parsedToPass);
           },
           onError: () => {
@@ -274,7 +310,7 @@ export default function OnboardingScreen() {
   const handleSkip = useCallback(() => {
     if (isSubmitting) return;
 
-    const isLastStep = currentStep === STEP_ORDER[STEP_ORDER.length - 1];
+    const isLastStep = currentStep === 'health' || currentStep === 'health_followup';
 
     if (isLastStep) {
       // Last step - finish setup directly
@@ -399,13 +435,20 @@ export default function OnboardingScreen() {
     );
   }
 
-  const stepConfig = STEP_CONFIGS[currentStep];
-  const isLastStep = currentStep === STEP_ORDER[STEP_ORDER.length - 1];
+  const baseStepConfig = STEP_CONFIGS[currentStep];
+  const stepConfig = currentStep === 'health_followup' && healthInjuryArea
+    ? {
+        ...baseStepConfig,
+        cardOptions: HEALTH_FOLLOWUP_OPTIONS[healthInjuryArea] ?? baseStepConfig.cardOptions,
+        placeholder: HEALTH_FOLLOWUP_PLACEHOLDERS[healthInjuryArea] ?? baseStepConfig.placeholder,
+      }
+    : baseStepConfig;
+  const isLastStep = currentStep === 'health' || currentStep === 'health_followup';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#121212' }} edges={['top']}>
-      <OnboardingHeader stepNumber={stepNumber} totalSteps={TOTAL_STEPS} />
-      <ProgressBar current={stepNumber} total={TOTAL_STEPS} />
+      <OnboardingHeader stepNumber={stepNumber} totalSteps={VISIBLE_TOTAL_STEPS} />
+      <ProgressBar current={stepNumber} total={VISIBLE_TOTAL_STEPS} />
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -426,6 +469,7 @@ export default function OnboardingScreen() {
               content={msg.content}
               parsedData={msg.parsedData}
               isWelcome={msg.isWelcome}
+              showPrivacyNote={msg.showPrivacyNote}
             />
           ))}
 
@@ -506,6 +550,7 @@ export default function OnboardingScreen() {
           disabled={isSubmitting}
           placeholder={stepConfig.placeholder}
           isLastStep={isLastStep}
+          skipText={currentStep === 'health_followup' ? 'Skip \u2014 finish setup' : undefined}
         />
       </KeyboardAvoidingView>
     </SafeAreaView>

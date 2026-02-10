@@ -26,13 +26,55 @@ export const STEP_ORDER: OnboardingStepName[] = [
   'training',
   'goals',
   'gear',
+  'gear_followup',
   'equipment',
   'health',
+  'health_followup',
 ];
+
+const DISPLAY_STEP_MAP: Record<OnboardingStepName, number> = {
+  welcome: 1, units: 2, training: 3, goals: 4,
+  gear: 5, gear_followup: 5,
+  equipment: 6,
+  health: 7, health_followup: 7,
+};
+
+export const VISIBLE_TOTAL_STEPS = 7;
+
+export function getDisplayStepNumber(step: OnboardingStepName): number {
+  return DISPLAY_STEP_MAP[step];
+}
 
 export function getStepNumber(step: OnboardingStepName): number {
   return STEP_ORDER.indexOf(step) + 1;
 }
+
+export const HEALTH_FOLLOWUP_OPTIONS: Record<string, CardOption[]> = {
+  shoulder: [
+    { label: 'Rotator cuff injury', value: 'rotator_cuff', icon: 'radio-button-unchecked' },
+    { label: 'Impingement / bursitis', value: 'impingement', icon: 'radio-button-unchecked' },
+    { label: 'General pain / stiffness', value: 'general_pain', icon: 'radio-button-unchecked' },
+    { label: 'Post-surgery recovery', value: 'post_surgery', icon: 'radio-button-unchecked' },
+  ],
+  knee: [
+    { label: 'Meniscus injury', value: 'meniscus', icon: 'radio-button-unchecked' },
+    { label: 'Ligament injury (ACL/MCL)', value: 'ligament', icon: 'radio-button-unchecked' },
+    { label: 'Patella issues', value: 'patella', icon: 'radio-button-unchecked' },
+    { label: 'General pain / stiffness', value: 'general_pain', icon: 'radio-button-unchecked' },
+  ],
+  lower_back: [
+    { label: 'Herniated disc', value: 'herniated_disc', icon: 'radio-button-unchecked' },
+    { label: 'Sciatica', value: 'sciatica', icon: 'radio-button-unchecked' },
+    { label: 'Muscle strain', value: 'muscle_strain', icon: 'radio-button-unchecked' },
+    { label: 'General pain / stiffness', value: 'general_pain', icon: 'radio-button-unchecked' },
+  ],
+};
+
+export const HEALTH_FOLLOWUP_PLACEHOLDERS: Record<string, string> = {
+  shoulder: 'Describe your shoulder issue...',
+  knee: 'Describe your knee issue...',
+  lower_back: 'Describe your lower back issue...',
+};
 
 export const STEP_CONFIGS: Record<OnboardingStepName, StepConfig> = {
   welcome: {
@@ -123,6 +165,11 @@ export const STEP_CONFIGS: Record<OnboardingStepName, StepConfig> = {
     },
   },
 
+  gear_followup: {
+    placeholder: 'e.g., Test 250mg/week, Anavar 50mg/day',
+    buildText: () => '',
+  },
+
   equipment: {
     placeholder: 'Or describe your setup...',
     cardOptions: [
@@ -166,6 +213,16 @@ export const STEP_CONFIGS: Record<OnboardingStepName, StepConfig> = {
         if (cards[0] === 'no_injuries') return 'No current injuries';
         return cards.map(c => c.replace(/_/g, ' ')).join(', ');
       }
+      return '';
+    },
+  },
+
+  health_followup: {
+    placeholder: 'Describe your issue...',
+    sectionLabels: ['SELECT ONE'],
+    cardOptions: [], // Overridden dynamically in onboarding.tsx
+    buildText: ({ cards }) => {
+      if (cards?.length) return cards.map(c => c.replace(/_/g, ' ')).join(', ');
       return '';
     },
   },
