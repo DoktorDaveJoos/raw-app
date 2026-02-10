@@ -1,20 +1,34 @@
-import { View, Text, Pressable, SectionList, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, Pressable, SectionList, RefreshControl, StyleSheet, Alert, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { useState, useCallback, useMemo } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { Play } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
 import { formatCardDate, formatDurationMinutes, groupSessionsByWeek } from '@/lib/utils';
-import { useSessions, useCurrentSession } from '@/hooks';
+import { useSessions, useCurrentSession, useCreateAndStartSession } from '@/hooks';
 import { Skeleton } from '@/components/ui';
+import BarChartIllustration from '@/components/ui/BarChartIllustration';
 import type { WorkoutSessionSummary } from '@/lib/api';
 import type { WeekGroup } from '@/lib/utils';
 
 export default function LogScreen() {
   const [refreshing, setRefreshing] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
 
   const { data: sessionsResponse, isLoading, isError, refetch } = useSessions();
   const { refetch: refetchCurrent } = useCurrentSession();
+  const createAndStart = useCreateAndStartSession();
+
+  const handleStartFirstWorkout = async () => {
+    if (createAndStart.isPending) return;
+    try {
+      const session = await createAndStart.mutateAsync('First Workout');
+      router.push(`/readiness/${session.id}`);
+    } catch (error) {
+      Alert.alert('Unable to Start Workout', 'Please check your connection and try again.');
+    }
+  };
 
   const sessions = sessionsResponse?.data ?? [];
   const finishedSessions = sessions.filter((s) => s.status === 'finished');
@@ -35,32 +49,55 @@ export default function LogScreen() {
     }
   };
 
-  const ListEmpty = () => (
-    <View style={styles.emptyContainer}>
-      {isLoading ? (
-        <View style={{ width: '100%' }}>
-          <Skeleton width="100%" height={76} borderRadius={12} style={{ marginBottom: 8 }} />
-          <Skeleton width="100%" height={76} borderRadius={12} style={{ marginBottom: 8 }} />
-          <Skeleton width="100%" height={76} borderRadius={12} />
-        </View>
-      ) : isError ? (
-        <View style={styles.errorContainer}>
-          <MaterialIcons name="error-outline" size={48} color="#ef4444" />
-          <Text style={styles.errorTitle}>Failed to load workouts</Text>
-          <Text style={styles.errorSubtitle}>Check your connection and try again</Text>
-          <Pressable onPress={() => refetch()} style={styles.retryButton}>
-            <Text style={styles.retryText}>Retry</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <>
-          <MaterialIcons name="fitness-center" size={48} color={colors.textDim} />
-          <Text style={styles.emptyTitle}>No workouts yet</Text>
-          <Text style={styles.emptySubtitle}>Start your first workout to see it here</Text>
-        </>
-      )}
-    </View>
-  );
+  const ListEmpty = () => {
+    // Calculate minimum height to fill viewport: windowHeight - header (56) - listContent padding (16 top + 100 bottom)
+    const minHeight = windowHeight - 56 - 16 - 100;
+
+    return (
+      <View style={[styles.emptyContainer, { minHeight }]}>
+        {isLoading ? (
+          <View style={{ width: '100%' }}>
+            <Skeleton width="100%" height={76} borderRadius={12} style={{ marginBottom: 8 }} />
+            <Skeleton width="100%" height={76} borderRadius={12} style={{ marginBottom: 8 }} />
+            <Skeleton width="100%" height={76} borderRadius={12} />
+          </View>
+        ) : isError ? (
+          <View style={styles.errorContainer}>
+            <MaterialIcons name="error-outline" size={48} color="#ef4444" />
+            <Text style={styles.errorTitle}>Failed to load workouts</Text>
+            <Text style={styles.errorSubtitle}>Check your connection and try again</Text>
+            <Pressable onPress={() => refetch()} style={styles.retryButton}>
+              <Text style={styles.retryText}>Retry</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <BarChartIllustration />
+            <View style={styles.textBlock}>
+              <Text style={styles.emptyTitleEnhanced}>Start building your history</Text>
+              <Text style={styles.emptySubtitleEnhanced}>
+                Every rep counts. Complete your first workout and watch your progress grow here.
+              </Text>
+            </View>
+            <Pressable
+              onPress={handleStartFirstWorkout}
+              disabled={createAndStart.isPending}
+              style={({ pressed }) => [
+                styles.ctaButton,
+                { opacity: pressed ? 0.8 : 1 }
+              ]}
+              accessibilityLabel="Start your first workout"
+            >
+              <Play size={18} color="#000000" fill="#000000" />
+              <Text style={styles.ctaButtonText}>
+                {createAndStart.isPending ? 'Starting...' : 'Start First Workout'}
+              </Text>
+            </Pressable>
+          </>
+        )}
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -270,7 +307,8 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     alignItems: 'center',
-    paddingVertical: 48,
+    justifyContent: 'center',
+    gap: 32,
   },
   emptyTitle: {
     fontFamily: 'SpaceGrotesk_400Regular',
@@ -283,6 +321,42 @@ const styles = StyleSheet.create({
     color: colors.textDim,
     fontSize: 14,
     marginTop: 4,
+  },
+  textBlock: {
+    gap: 8,
+    alignItems: 'center',
+  },
+  emptyTitleEnhanced: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.textPrimary,
+    textAlign: 'center',
+  },
+  emptySubtitleEnhanced: {
+    fontFamily: 'SpaceGrotesk_400Regular',
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 21,
+    maxWidth: 280,
+    paddingHorizontal: 8,
+  },
+  ctaButton: {
+    width: 240,
+    height: 52,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  ctaButtonText: {
+    fontFamily: 'SpaceGrotesk_700Bold',
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
   },
   errorContainer: {
     alignItems: 'center',
