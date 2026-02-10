@@ -1,53 +1,32 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
-import { colors } from '@/lib/theme';
+import { TabBar } from '@/components/TabBar';
 
 export default function TabLayout() {
   return (
     <Tabs
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: '#FFFFFF',
-        tabBarInactiveTintColor: colors.textDim,
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.borderSubtle,
-          borderTopWidth: 1,
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '600',
-          letterSpacing: 0.5,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'START',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="play-arrow" size={22} color={color} />
-          ),
+          title: 'Start',
         }}
       />
       <Tabs.Screen
         name="log"
         options={{
-          title: 'LOG',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="assignment" size={22} color={color} />
-          ),
+          title: 'Log',
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'ME',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="person-outline" size={22} color={color} />
-          ),
+          title: 'Profile',
         }}
       />
       <Tabs.Screen
@@ -56,7 +35,6 @@ export default function TabLayout() {
           href: null,
         }}
       />
-      {/* Hide explore from tab bar - it's from the template */}
       <Tabs.Screen
         name="explore"
         options={{
