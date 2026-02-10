@@ -4,5 +4,6 @@ export { ChatBubble } from './ChatBubble';
 export { OptionCard } from './OptionCard';
 export { OptionChip } from './OptionChip';
 export { SectionLabel } from './SectionLabel';
+export { PrivacyNote } from './PrivacyNote';
 export { OnboardingInputBar } from './OnboardingInputBar';
 export { CompletionScreen } from './CompletionScreen';

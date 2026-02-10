@@ -9,6 +9,7 @@ interface OnboardingInputBarProps {
   disabled?: boolean;
   placeholder?: string;
   isLastStep?: boolean;
+  skipText?: string;
 }
 
 export function OnboardingInputBar({
@@ -19,6 +20,7 @@ export function OnboardingInputBar({
   disabled = false,
   placeholder = 'Type your answer...',
   isLastStep = false,
+  skipText,
 }: OnboardingInputBarProps) {
   const canSend = !disabled && !!value.trim();
 
@@ -91,12 +93,12 @@ export function OnboardingInputBar({
       >
         <Text
           style={{
-            fontFamily: isLastStep ? 'SpaceGrotesk_600SemiBold' : 'SpaceGrotesk_500Medium',
+            fontFamily: isLastStep || skipText ? 'SpaceGrotesk_600SemiBold' : 'SpaceGrotesk_500Medium',
             fontSize: 13,
-            color: isLastStep ? '#FFFFFF' : '#6B7280',
+            color: isLastStep || skipText ? '#FFFFFF' : '#6B7280',
           }}
         >
-          {isLastStep ? 'Finish setup' : 'Skip this step'}
+          {skipText ?? (isLastStep ? 'Finish setup' : 'Skip this step')}
         </Text>
       </Pressable>
     </View>
