@@ -39,8 +39,20 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
       ? Object.entries(parsedData)
           .filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0))
           .map(([key, value]) => {
+            // Welcome step fields
+            if (key === 'age') return `Age: ${value}`;
+            if (key === 'gender') {
+              const genderStr = String(value);
+              return genderStr.charAt(0).toUpperCase() + genderStr.slice(1);
+            }
+            if (key === 'body_weight') return `${value} kg`; // Assume kg initially
+            if (key === 'height') return `${value} cm`;
+
+            // Units step field
+            if (key === 'unit_preference') return value === 'kg' ? 'Kilograms' : 'Pounds';
+
+            // Handle arrays of objects (e.g., compounds)
             if (Array.isArray(value)) {
-              // Handle arrays of objects (e.g., compounds)
               const mapped = value.map((item) => {
                 if (typeof item === 'object' && item !== null) {
                   // For objects, try to extract the "name" field, or join all values
@@ -50,7 +62,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
               });
               return mapped.join(', ');
             }
-            if (typeof value === 'object') {
+            if (typeof value === 'object' && value !== null) {
               // Handle nested objects by converting to readable format
               return Object.values(value).filter(Boolean).join(', ');
             }

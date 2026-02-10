@@ -281,7 +281,7 @@ export interface ValidationError extends ApiError {
 // ============================================
 // Onboarding
 // ============================================
-export type OnboardingStepName = 'basics' | 'training' | 'goals' | 'gear' | 'equipment' | 'health';
+export type OnboardingStepName = 'welcome' | 'units' | 'training' | 'goals' | 'gear' | 'equipment' | 'health';
 
 export interface OnboardingStatusResponse {
   completed: boolean;

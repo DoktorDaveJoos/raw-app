@@ -21,7 +21,8 @@ export interface StepConfig {
 }
 
 export const STEP_ORDER: OnboardingStepName[] = [
-  'basics',
+  'welcome',
+  'units',
   'training',
   'goals',
   'gear',
@@ -34,8 +35,13 @@ export function getStepNumber(step: OnboardingStepName): number {
 }
 
 export const STEP_CONFIGS: Record<OnboardingStepName, StepConfig> = {
-  basics: {
-    placeholder: "e.g. I'm 28, 180cm, 82kg",
+  welcome: {
+    placeholder: 'e.g. 28, male, 82kg, 180cm',
+    buildText: () => '', // No chips - pure text input
+  },
+
+  units: {
+    placeholder: 'Or type your preference...',
     chipOptions: [
       { label: 'Kilograms (kg)', value: 'kg' },
       { label: 'Pounds (lb)', value: 'lb' },

@@ -36,7 +36,7 @@ interface ChatMessage {
   isWelcome?: boolean;
 }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 const WELCOME_MESSAGE =
   "I'm going to ask you a few questions to personalize your experience. This helps me understand your training and give better recommendations.";
@@ -52,7 +52,7 @@ export default function OnboardingScreen() {
   const completeOnboarding = useCompleteOnboarding();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentStep, setCurrentStep] = useState<OnboardingStepName>('basics');
+  const [currentStep, setCurrentStep] = useState<OnboardingStepName>('welcome');
   const [stepNumber, setStepNumber] = useState(1);
   const [inputText, setInputText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,14 +77,14 @@ export default function OnboardingScreen() {
       return;
     }
 
-    const step = status.current_step ?? 'basics';
+    const step = status.current_step ?? 'welcome';
     const stepNum = getStepNumber(step);
     setCurrentStep(step);
     setStepNumber(stepNum);
 
     const initialMessages: ChatMessage[] = [];
 
-    if (step === 'basics') {
+    if (step === 'welcome') {
       // First step: show welcome message
       initialMessages.push({
         id: 'welcome',
@@ -124,7 +124,7 @@ export default function OnboardingScreen() {
   }, []);
 
   const advanceToNextStep = useCallback(
-    (nextStep: OnboardingStepName | null, nextPrompt: string | null) => {
+    (nextStep: OnboardingStepName | null, nextPrompt: string | null, parsedFromPrevious?: Record<string, unknown>) => {
       if (!nextStep || !nextPrompt) {
         // Onboarding done, call complete
         setIsSubmitting(true);
@@ -153,14 +153,27 @@ export default function OnboardingScreen() {
       setCurrentStep(nextStep);
       setStepNumber(getStepNumber(nextStep));
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `prompt-${nextStep}`,
-          type: 'ai' as const,
-          content: nextPrompt,
-        },
-      ]);
+      const newMessages: ChatMessage[] = [];
+
+      // Special case: transitioning to 'units' step
+      // Show confirmation bubble with parsed data from 'welcome'
+      if (nextStep === 'units' && parsedFromPrevious) {
+        newMessages.push({
+          id: 'confirm-welcome-for-units',
+          type: 'confirm',
+          content: "Got it! Here's what I noted:",
+          parsedData: parsedFromPrevious,
+        });
+      }
+
+      // Add the new prompt
+      newMessages.push({
+        id: `prompt-${nextStep}`,
+        type: 'ai' as const,
+        content: nextPrompt,
+      });
+
+      setMessages((prev) => [...prev, ...newMessages]);
     },
     [completeOnboarding, resetStepSelections],
   );
@@ -187,16 +200,18 @@ export default function OnboardingScreen() {
         { step: currentStep, rawText: userText },
         {
           onSuccess: (data) => {
-            // Add confirmation bubble
-            setMessages((prev) => [
-              ...prev,
-              {
-                id: `confirm-${currentStep}`,
-                type: 'confirm',
-                content: `Got it! ${'\u2713'}`,
-                parsedData: data.parsed,
-              },
-            ]);
+            // For steps other than 'welcome', show confirmation immediately
+            if (currentStep !== 'welcome') {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `confirm-${currentStep}`,
+                  type: 'confirm',
+                  content: `Got it! ${'\u2713'}`,
+                  parsedData: data.parsed,
+                },
+              ]);
+            }
 
             // Track profile data for summary
             setProfileSummary((prev) => {
@@ -212,7 +227,10 @@ export default function OnboardingScreen() {
             });
 
             setIsSubmitting(false);
-            advanceToNextStep(data.next_step, data.next_prompt);
+
+            // Pass parsed data if advancing to 'units' from 'welcome'
+            const parsedToPass = currentStep === 'welcome' ? data.parsed : undefined;
+            advanceToNextStep(data.next_step, data.next_prompt, parsedToPass);
           },
           onError: () => {
             setIsSubmitting(false);
