@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { MessageSquare } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
 import { BottomLogger } from '@/components/BottomLogger';
 import { EventBubble, EditRawTextModal, DeleteConfirmationModal } from '@/components/session';
@@ -10,6 +11,8 @@ import { Skeleton } from '@/components/ui';
 import { useSession, useFinishSession, useCreateEvent, useDeleteEvent, useUpdateEvent, useSubmitFeedback, useSubmitClarification } from '@/hooks';
 import type { SessionEvent } from '@/lib/api';
 import { formatDuration, calculateDuration } from '@/lib/utils';
+
+const HINT_EXAMPLES = ['bench 3x100kg', 'squat 5x80kg @8', 'deadlift 1x180kg'];
 
 export default function LoggingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -430,30 +433,68 @@ export default function LoggingScreen() {
           onContentSizeChange={handleContentSizeChange}
         >
           {sortedEvents.length === 0 && !createEvent.isPending ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <MaterialIcons name="fitness-center" size={48} color={colors.textDim} />
-              <Text
-                style={{
-                  fontFamily: 'SpaceGrotesk_400Regular',
-                  fontSize: 16,
-                  color: '#9CA3AF',
-                  marginTop: 16,
-                }}
-              >
-                No sets logged yet
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 40 }}>
+              {/* Icon Circle */}
+              <View style={{
+                width: 72,
+                height: 72,
+                borderRadius: 36,
+                backgroundColor: colors.card,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <MessageSquare size={28} color="#4B5563" />
+              </View>
+
+              {/* Title */}
+              <Text style={{
+                fontFamily: 'SpaceGrotesk_600SemiBold',
+                fontSize: 18,
+                color: colors.white,
+                marginTop: 16
+              }}>
+                Start logging
               </Text>
-              <Text
-                style={{
-                  fontFamily: 'SpaceGrotesk_400Regular',
-                  fontSize: 14,
-                  color: '#6B7280',
-                  marginTop: 4,
-                  textAlign: 'center',
-                  paddingHorizontal: 32,
-                }}
-              >
-                Use the input below to log your exercises{'\n'}e.g., "bench 3x8 100kg"
+
+              {/* Description */}
+              <Text style={{
+                fontFamily: 'SpaceGrotesk_400Regular',
+                fontSize: 14,
+                color: colors.textDim,
+                lineHeight: 21,
+                textAlign: 'center',
+                maxWidth: 260,
+                marginTop: 16
+              }}>
+                Type an exercise below to get started.{'\n'}Try something like:
               </Text>
+
+              {/* Hint Examples */}
+              <View style={{ marginTop: 16, gap: 8, alignItems: 'center' }}>
+                {HINT_EXAMPLES.map((hint) => (
+                  <Pressable
+                    key={hint}
+                    onPress={() => setInputText(hint)}
+                    style={({ pressed }) => ({
+                      backgroundColor: colors.card,
+                      borderWidth: 1,
+                      borderColor: colors.borderSubtle,
+                      borderRadius: 12,
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      opacity: pressed ? 0.7 : 1,
+                    })}
+                  >
+                    <Text style={{
+                      fontFamily: 'SpaceGrotesk_500Medium',
+                      fontSize: 13,
+                      color: colors.textMuted
+                    }}>
+                      {hint}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           ) : (
             sortedEvents.map((event) => {
