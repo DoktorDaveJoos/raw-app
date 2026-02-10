@@ -37,7 +37,7 @@ export function ChatBubble({ type, content, parsedData, isWelcome }: ChatBubbleP
   if (type === 'confirm') {
     const tags = parsedData
       ? Object.entries(parsedData)
-          .filter(([, v]) => v != null && v !== '')
+          .filter(([, v]) => v != null && v !== '' && !(Array.isArray(v) && v.length === 0))
           .map(([key, value]) => {
             if (Array.isArray(value)) {
               // Handle arrays of objects (e.g., compounds)
