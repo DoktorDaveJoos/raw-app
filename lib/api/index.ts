@@ -59,6 +59,25 @@ export {
 } from './user';
 
 // ============================================
+// Profile
+// ============================================
+export {
+  getProfile,
+  updateProfile,
+} from './profile';
+export type { Profile, ProfileUpdate, Compound, Injury } from './profile';
+
+// ============================================
+// Readiness
+// ============================================
+export {
+  submitReadiness,
+  skipReadiness,
+  getReadinessBaseline,
+} from './readiness';
+export type { ReadinessSignal, ReadinessBaseline } from './readiness';
+
+// ============================================
 // Onboarding
 // ============================================
 export {

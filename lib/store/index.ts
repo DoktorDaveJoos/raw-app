@@ -20,6 +20,7 @@ export {
   invalidateSessions,
   invalidateSession,
   invalidateUser,
+  invalidateProfile,
   invalidateOnboarding,
   clearQueryCache,
 } from './query-provider';

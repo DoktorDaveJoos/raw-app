@@ -36,7 +36,7 @@ export default function HomeScreen() {
     } else {
       try {
         const session = await createAndStart.mutateAsync('Upper Body Power');
-        router.push(`/logging/${session.id}`);
+        router.push(`/readiness/${session.id}`);
       } catch (error) {
         Alert.alert('Unable to Start Workout', 'Please check your connection and try again.');
       }

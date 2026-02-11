@@ -41,6 +41,9 @@ export const queryKeys = {
   // Weekly stats (derived from sessions)
   weeklyStats: ['weeklyStats'] as const,
 
+  // Profile
+  profile: ['profile'] as const,
+
   // Onboarding
   onboarding: {
     status: ['onboarding', 'status'] as const,
@@ -92,6 +95,13 @@ export function invalidateUser() {
  */
 export function invalidateOnboarding() {
   queryClient.invalidateQueries({ queryKey: queryKeys.onboarding.status });
+}
+
+/**
+ * Invalidate profile data
+ */
+export function invalidateProfile() {
+  queryClient.invalidateQueries({ queryKey: queryKeys.profile });
 }
 
 /**

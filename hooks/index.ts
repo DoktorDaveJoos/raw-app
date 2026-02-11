@@ -19,6 +19,12 @@ export {
 // Stats hooks
 export { useWeeklyStats, type WeeklyStats } from './useWeeklyStats';
 
+// Profile hooks
+export { useProfile, useUpdateProfile } from './useProfile';
+
+// Readiness hooks
+export { useSubmitReadiness, useSkipReadiness, useReadinessBaseline } from './useReadiness';
+
 // Onboarding hooks
 export {
   useOnboardingStatus,

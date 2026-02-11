@@ -13,3 +13,4 @@ export {
 
 // Existing components
 export { IconSymbol } from './icon-symbol';
+export { default as BarChartIllustration } from './BarChartIllustration';

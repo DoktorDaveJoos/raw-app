@@ -230,6 +230,28 @@ export function getFinishedSessions() {
   return mockWeeklySessions.filter((s) => s.status === 'finished');
 }
 
+// Profile data
+export const mockProfile = {
+  age: 28,
+  gender: 'male',
+  body_weight: 82,
+  height: 180,
+  unit_preference: 'kg',
+  training_years: 5,
+  experience_level: 'intermediate',
+  training_frequency: 4,
+  current_split: 'ppl',
+  primary_goal: 'hypertrophy',
+  target_muscle_groups: ['chest', 'back', 'quadriceps'],
+  is_enhanced: false,
+  compounds: [],
+  supplements: ['creatine', 'protein'],
+  gym_type: 'commercial',
+  available_equipment: ['barbell', 'dumbbells', 'cables'],
+  injuries: [],
+  movements_to_avoid: [],
+};
+
 // New event created via POST (processing state)
 export const mockCreatedEvent = {
   id: 999,
