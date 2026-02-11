@@ -46,11 +46,11 @@ export const SIGNAL_CONFIGS: SignalConfig[] = [
     label: 'Muscle soreness',
     icon: HeartPulse,
     options: [
-      { value: 1, label: 'None' },
-      { value: 2, label: 'Mild' },
+      { value: 1, label: 'Very sore' },
+      { value: 2, label: 'Sore' },
       { value: 3, label: 'Moderate' },
-      { value: 4, label: 'Sore' },
-      { value: 5, label: 'Very sore' },
+      { value: 4, label: 'Mild' },
+      { value: 5, label: 'None' },
     ],
   },
   {
