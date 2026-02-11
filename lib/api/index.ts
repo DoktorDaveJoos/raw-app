@@ -86,3 +86,18 @@ export {
   skipOnboardingStep,
   completeOnboarding,
 } from './onboarding';
+
+// ============================================
+// Start Page
+// ============================================
+export { getStartPage } from './start-page';
+export type {
+  StartPageGreeting,
+  StartPageStatsCurrent,
+  StartPageStatsChanges,
+  StartPageStats,
+  StartPageE1rm,
+  StartPageInsight,
+  VolumeLandmark,
+  StartPageData,
+} from './start-page';

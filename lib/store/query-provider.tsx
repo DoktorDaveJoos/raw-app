@@ -41,6 +41,9 @@ export const queryKeys = {
   // Weekly stats (derived from sessions)
   weeklyStats: ['weeklyStats'] as const,
 
+  // Start page
+  startPage: ['startPage'] as const,
+
   // Profile
   profile: ['profile'] as const,
 
@@ -74,6 +77,14 @@ export function QueryProvider({ children }: QueryProviderProps) {
  */
 export function invalidateSessions() {
   queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+  queryClient.invalidateQueries({ queryKey: queryKeys.startPage });
+}
+
+/**
+ * Invalidate start page data
+ */
+export function invalidateStartPage() {
+  queryClient.invalidateQueries({ queryKey: queryKeys.startPage });
 }
 
 /**

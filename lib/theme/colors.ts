@@ -20,12 +20,17 @@ export const colors = {
   textPrimary: '#ffffff',
   textMuted: '#9CA3AF',
   textDim: '#6B7280',
+  textDarker: '#4B5563',
+  textDarkest: '#374151',
 
   // Status
   success: '#059669',
   successBg: '#064e3b',
   error: '#dc2626',
   errorBg: '#7f1d1d',
+  green: '#4ADE80',
+  amber: '#F59E0B',
+  red: '#EF4444',
 
   // Neutrals (for convenience)
   white: '#ffffff',

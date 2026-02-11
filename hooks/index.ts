@@ -16,8 +16,8 @@ export {
   type ClarificationPayload,
 } from './useSessions';
 
-// Stats hooks
-export { useWeeklyStats, type WeeklyStats } from './useWeeklyStats';
+// Start page
+export { useStartPage } from './useStartPage';
 
 // Profile hooks
 export { useProfile, useUpdateProfile } from './useProfile';

@@ -22,5 +22,6 @@ export {
   invalidateUser,
   invalidateProfile,
   invalidateOnboarding,
+  invalidateStartPage,
   clearQueryCache,
 } from './query-provider';
