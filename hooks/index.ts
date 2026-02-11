@@ -13,8 +13,13 @@ export {
   useUpdateEvent,
   useSubmitFeedback,
   useSubmitClarification,
+  useSubmitMuscleMapping,
+  useSkipMuscleMapping,
   type ClarificationPayload,
 } from './useSessions';
+
+// Muscle groups
+export { useMuscleGroups } from './useMuscleGroups';
 
 // Start page
 export { useStartPage } from './useStartPage';

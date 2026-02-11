@@ -65,7 +65,7 @@ export const SuggestionsSchema = z.object({
 export type Suggestions = z.infer<typeof SuggestionsSchema>;
 
 export const ClarificationSchema = z.object({
-  type: z.enum(['ambiguity', 'missing_info']),
+  type: z.enum(['ambiguity', 'missing_info', 'muscle_mapping']),
   message: z.string(),
   options: z.array(z.object({
     label: z.string(),
@@ -73,6 +73,8 @@ export const ClarificationSchema = z.object({
   })).optional().default([]),
   missing_field: z.enum(['reps', 'weight', 'set_count']).nullable().optional(),
   partial_payload: z.record(z.string(), z.unknown()).nullable().optional(),
+  exercise_id: z.number().optional(),
+  exercise_name: z.string().optional(),
 });
 
 export type Clarification = z.infer<typeof ClarificationSchema>;
@@ -315,4 +317,30 @@ export interface OnboardingSkipResponse {
 export interface OnboardingCompleteResponse {
   message: string;
   profile: Record<string, unknown>;
+}
+
+// ============================================
+// Muscle Groups
+// ============================================
+export const MuscleGroupSchema = z.object({
+  key: z.string(),
+  name: z.string(),
+  category: z.enum(['push', 'pull', 'arms', 'legs', 'core']),
+  sort_order: z.number(),
+});
+
+export type MuscleGroup = z.infer<typeof MuscleGroupSchema>;
+
+export interface MuscleMappingEntry {
+  muscle_group_key: string;
+  contribution: 0.5 | 1.0; // Secondary | Primary
+}
+
+export interface SubmitMuscleMappingRequest {
+  exercise_id: number;
+  mappings: MuscleMappingEntry[];
+}
+
+export interface UpdateExerciseMuscleMappingRequest {
+  mappings: MuscleMappingEntry[];
 }

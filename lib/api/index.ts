@@ -47,6 +47,8 @@ export {
   getCurrentSession,
   createAndStartSession,
   getWeeklyStats,
+  submitMuscleMapping,
+  skipMuscleMapping,
 } from './sessions';
 
 // ============================================
@@ -86,6 +88,11 @@ export {
   skipOnboardingStep,
   completeOnboarding,
 } from './onboarding';
+
+// ============================================
+// Muscle Groups
+// ============================================
+export { getMuscleGroups } from './muscle-groups';
 
 // ============================================
 // Start Page

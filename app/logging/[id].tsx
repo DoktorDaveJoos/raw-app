@@ -508,6 +508,7 @@ export default function LoggingScreen() {
                 <EventBubble
                   key={event.id}
                   event={event}
+                  sessionId={sessionId}
                   onSelectSuggestion={handleSelectSuggestion}
                   onSelectClarificationOption={handleSelectClarificationOption}
                   onSubmitMissingValue={handleSubmitMissingValue}

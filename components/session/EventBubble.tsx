@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { colors } from '@/lib/theme';
 import type { SessionEvent, Set, SuggestionOption } from '@/lib/api';
+import { MuscleMappingBubble } from './MuscleMappingBubble';
 
 // Hook to track previous value for detecting status transitions
 function usePrevious<T>(value: T): T | undefined {
@@ -50,6 +51,7 @@ function determineFeedbackType(option: SuggestionOption): FeedbackType {
 
 interface EventBubbleProps {
   event: SessionEvent;
+  sessionId?: number; // Add sessionId for muscle mapping
   onSelectSuggestion?: (eventId: number, optionIndex: number, feedbackType: FeedbackType) => void;
   onSelectClarificationOption?: (eventId: number, optionIndex: number) => void;
   onEditRawText?: (eventId: number, currentText: string) => void;
@@ -833,6 +835,7 @@ function FailedBubble({ event }: { event: SessionEvent }) {
 
 export function EventBubble({
   event,
+  sessionId,
   onSelectSuggestion,
   onSelectClarificationOption,
   onEditRawText,
@@ -841,6 +844,29 @@ export function EventBubble({
   onDelete,
   skipEntranceAnimation,
 }: EventBubbleProps) {
+  // Handle muscle mapping clarification type
+  if (event.clarification?.type === 'muscle_mapping' && sessionId) {
+    return (
+      <Animated.View
+        entering={skipEntranceAnimation ? undefined : FadeInUp.duration(300).springify().damping(15)}
+        layout={LinearTransition.springify().damping(15)}
+        style={{ gap: 4 }}
+      >
+        {/* Timestamp */}
+        <Text
+          style={{
+            fontFamily: 'SpaceGrotesk_500Medium',
+            fontSize: 11,
+            color: '#6B7280',
+          }}
+        >
+          {formatTimestamp(event.created_at)}
+        </Text>
+        <MuscleMappingBubble event={event} sessionId={sessionId} />
+      </Animated.View>
+    );
+  }
+
   const isProcessing = event.status === 'queued' || event.status === 'processing';
   const needsMissingInfo =
     event.status === 'needs_clarification' &&

@@ -10,6 +10,7 @@ import type {
   FeedbackRequest,
   ClarificationRequest,
   Clarification,
+  SubmitMuscleMappingRequest,
 } from './types';
 
 // ============================================
@@ -42,11 +43,13 @@ interface RawAiParseRun {
 }
 
 interface RawClarification {
-  type: 'ambiguity' | 'missing_info';
+  type: 'ambiguity' | 'missing_info' | 'muscle_mapping';
   message: string;
   options?: Array<{ label: string; payload: Record<string, unknown> }>;
   missing_field?: 'reps' | 'weight' | 'set_count' | null;
   partial_payload?: Record<string, unknown> | null;
+  exercise_id?: number;
+  exercise_name?: string;
 }
 
 interface RawSessionEvent {
@@ -152,6 +155,8 @@ function transformSessionEvent(raw: RawSessionEvent): SessionEvent {
     options: raw.clarification.options ?? [],
     missing_field: raw.clarification.missing_field ?? null,
     partial_payload: raw.clarification.partial_payload ?? null,
+    exercise_id: raw.clarification.exercise_id,
+    exercise_name: raw.clarification.exercise_name,
   } : null;
 
   return {
@@ -364,6 +369,38 @@ interface WeeklyStatsResponse {
 export async function getWeeklyStats(): Promise<WeeklyStatsResponse> {
   const response = await apiClient.get<{ data: WeeklyStatsResponse }>('/weekly-stats');
   return response.data.data;
+}
+
+// ============================================
+// Muscle Mapping
+// ============================================
+
+/**
+ * Submit muscle mapping for a session event
+ */
+export async function submitMuscleMapping(
+  sessionId: number,
+  eventId: number,
+  data: SubmitMuscleMappingRequest
+): Promise<SessionEvent> {
+  const response = await apiClient.post<{ data: RawSessionEvent }>(
+    `/sessions/${sessionId}/events/${eventId}/muscle-mapping`,
+    data
+  );
+  return transformSessionEvent(response.data.data);
+}
+
+/**
+ * Skip muscle mapping for a session event
+ */
+export async function skipMuscleMapping(
+  sessionId: number,
+  eventId: number
+): Promise<SessionEvent> {
+  const response = await apiClient.post<{ data: RawSessionEvent }>(
+    `/sessions/${sessionId}/events/${eventId}/muscle-mapping/skip`
+  );
+  return transformSessionEvent(response.data.data);
 }
 
 // ============================================

@@ -13,9 +13,11 @@ import {
   deleteEvent,
   submitFeedback,
   submitClarification,
+  submitMuscleMapping,
+  skipMuscleMapping,
 } from '@/lib/api';
 import { queryKeys, invalidateSessions, invalidateSession, useAuth } from '@/lib/store';
-import type { WorkoutSessionSummary, WorkoutSessionDetails, SessionEvent } from '@/lib/api';
+import type { WorkoutSessionSummary, WorkoutSessionDetails, SessionEvent, MuscleMappingEntry } from '@/lib/api';
 
 interface UseSessionsOptions {
   status?: 'pending' | 'in_progress' | 'finished';
@@ -406,6 +408,62 @@ export function useSubmitClarification(sessionId: number) {
               e.id === updatedEvent.id ? updatedEvent : e
             ),
           }
+        );
+      }
+    },
+  });
+}
+
+/**
+ * Hook to submit muscle mapping for an event
+ */
+export function useSubmitMuscleMapping(sessionId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ eventId, exerciseId, mappings }: {
+      eventId: number;
+      exerciseId: number;
+      mappings: MuscleMappingEntry[];
+    }) => submitMuscleMapping(sessionId, eventId, { exercise_id: exerciseId, mappings }),
+    onSuccess: (updatedEvent) => {
+      // Update the specific event in the session cache
+      const currentSession = queryClient.getQueryData<WorkoutSessionDetails>(
+        queryKeys.sessions.detail(sessionId)
+      );
+      if (currentSession) {
+        const updatedEvents = currentSession.session_events.map(e =>
+          e.id === updatedEvent.id ? updatedEvent : e
+        );
+        queryClient.setQueryData<WorkoutSessionDetails>(
+          queryKeys.sessions.detail(sessionId),
+          { ...currentSession, session_events: updatedEvents }
+        );
+      }
+    },
+  });
+}
+
+/**
+ * Hook to skip muscle mapping for an event
+ */
+export function useSkipMuscleMapping(sessionId: number) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (eventId: number) => skipMuscleMapping(sessionId, eventId),
+    onSuccess: (updatedEvent) => {
+      // Same cache update as submit
+      const currentSession = queryClient.getQueryData<WorkoutSessionDetails>(
+        queryKeys.sessions.detail(sessionId)
+      );
+      if (currentSession) {
+        const updatedEvents = currentSession.session_events.map(e =>
+          e.id === updatedEvent.id ? updatedEvent : e
+        );
+        queryClient.setQueryData<WorkoutSessionDetails>(
+          queryKeys.sessions.detail(sessionId),
+          { ...currentSession, session_events: updatedEvents }
         );
       }
     },
