@@ -165,7 +165,7 @@ function WorkoutCard({ session, onPress }: { session: WorkoutSessionSummary; onP
         {/* Left: title + meta */}
         <View style={styles.cardLeft}>
           <Text style={styles.cardTitle} numberOfLines={1}>
-            {session.title || 'Untitled Workout'}
+            {session.workout_name || 'Untitled Workout'}
           </Text>
           <View style={styles.cardMeta}>
             <Text style={styles.cardMetaText}>{dateDisplay}</Text>

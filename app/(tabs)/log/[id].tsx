@@ -212,7 +212,7 @@ export default function SessionDetailsScreen() {
           {/* Title Row */}
           <View style={styles.summaryTitleRow}>
             <View style={styles.summaryTitleLeft}>
-              <Text style={styles.workoutName}>{session.title || 'Workout Session'}</Text>
+              <Text style={styles.workoutName}>{session.workout_name || 'Workout Session'}</Text>
               <Text style={styles.workoutDate}>{longDate}</Text>
             </View>
             <View style={styles.durationBadge}>

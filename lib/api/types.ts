@@ -140,7 +140,7 @@ export type WorkoutSessionStatus = z.infer<typeof WorkoutSessionStatusSchema>;
 export const WorkoutSessionSummarySchema = z.object({
   id: z.number(),
   status: WorkoutSessionStatusSchema,
-  title: z.string().nullable(),
+  workout_name: z.string().nullable(),
   started_at: z.string().nullable(),
   finished_at: z.string().nullable(),
   volume_kg: z.number().nullable(),
