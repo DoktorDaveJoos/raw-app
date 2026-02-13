@@ -1,12 +1,13 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { ChevronLeft, Share, Ellipsis, Timer, Trash2, CircleAlert } from 'lucide-react-native';
 import { colors } from '@/lib/theme';
 import { useSession, useDeleteSession } from '@/hooks';
 import { formatLongDate, formatDurationMinutes, calculateDuration } from '@/lib/utils';
 import { Skeleton } from '@/components/ui';
+import { DeleteConfirmationModal } from '@/components/session/DeleteConfirmationModal';
 import type { Set } from '@/lib/api';
 
 interface ExerciseGroup {
@@ -21,6 +22,17 @@ export default function SessionDetailsScreen() {
 
   const { data: session, isLoading, isError, refetch } = useSession(sessionId);
   const deleteSession = useDeleteSession();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleted, setIsDeleted] = useState(false);
+
+  useEffect(() => {
+    if (isDeleted) {
+      const timer = setTimeout(() => {
+        router.navigate('/(tabs)/log');
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isDeleted]);
 
   // Calculate stats from session data
   const stats = useMemo(() => {
@@ -39,27 +51,44 @@ export default function SessionDetailsScreen() {
     };
   }, [session]);
 
-  // Group sets by exercise from completed add_sets events
+  // Group sets by exercise from completed add_sets events,
+  // falling back to session_exercises for seeded/imported sessions
   const exerciseGroups = useMemo((): ExerciseGroup[] => {
-    if (!session?.session_events) return [];
+    if (!session) return [];
 
-    const groupMap = new Map<string, Set[]>();
+    // Primary path: build from session_events (logged workouts)
+    if (session.session_events?.length) {
+      const groupMap = new Map<string, Set[]>();
 
-    for (const event of session.session_events) {
-      if (event.status !== 'completed' || event.type !== 'add_sets') continue;
-      if (!event.exercise_name || !event.sets) continue;
+      for (const event of session.session_events) {
+        if (event.status !== 'completed' || event.type !== 'add_sets') continue;
+        if (!event.exercise_name || !event.sets) continue;
 
-      const existing = groupMap.get(event.exercise_name) ?? [];
-      existing.push(...event.sets);
-      groupMap.set(event.exercise_name, existing);
+        const existing = groupMap.get(event.exercise_name) ?? [];
+        existing.push(...event.sets);
+        groupMap.set(event.exercise_name, existing);
+      }
+
+      const groups = Array.from(groupMap.entries()).map(([exerciseName, sets]) => ({
+        exerciseName,
+        sets: sets.map((s, i) => ({ ...s, set_number: i + 1 })),
+      }));
+
+      if (groups.length > 0) return groups;
     }
 
-    // Renumber sets sequentially per exercise
-    return Array.from(groupMap.entries()).map(([exerciseName, sets]) => ({
-      exerciseName,
-      sets: sets.map((s, i) => ({ ...s, set_number: i + 1 })),
-    }));
-  }, [session?.session_events]);
+    // Fallback path: build from session_exercises (seeded/imported sessions)
+    if (session.session_exercises?.length) {
+      return session.session_exercises
+        .filter((ex) => ex.sets && ex.sets.length > 0)
+        .map((ex) => ({
+          exerciseName: ex.exercise_name,
+          sets: ex.sets!.map((s, i) => ({ ...s, set_number: i + 1 })),
+        }));
+    }
+
+    return [];
+  }, [session]);
 
   const longDate = useMemo(() => {
     return formatLongDate(session?.started_at);
@@ -79,22 +108,14 @@ export default function SessionDetailsScreen() {
 
   const handleDelete = () => {
     if (!sessionId) return;
-    Alert.alert(
-      'Delete Workout',
-      'Are you sure you want to delete this workout? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            deleteSession.mutate(sessionId, {
-              onSuccess: () => router.navigate('/(tabs)/log'),
-            });
-          },
-        },
-      ],
-    );
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!sessionId) return;
+    deleteSession.mutate(sessionId, {
+      onSuccess: () => setIsDeleted(true),
+    });
   };
 
   const formatWeight = (set: Set): string => {
@@ -275,6 +296,17 @@ export default function SessionDetailsScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      <DeleteConfirmationModal
+        visible={showDeleteModal}
+        exerciseName="this workout"
+        title="Delete Workout?"
+        description="Are you sure you want to delete this workout? This action cannot be undone."
+        isDeleting={deleteSession.isPending}
+        isDeleted={isDeleted}
+        onCancel={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </SafeAreaView>
   );
 }

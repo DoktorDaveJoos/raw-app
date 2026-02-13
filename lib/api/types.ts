@@ -38,9 +38,11 @@ export const SessionExerciseSchema = z.object({
   id: z.number().optional(),
   exercise_id: z.number().optional(),
   exercise_name: z.string(),
+  sort_order: z.number().optional(),
   sets_count: z.number(),
   reps_count: z.number(),
   volume_kg: z.number().nullable(),
+  sets: z.array(SetSchema).optional(),
 });
 
 export type SessionExercise = z.infer<typeof SessionExerciseSchema>;
@@ -333,7 +335,7 @@ export type MuscleGroup = z.infer<typeof MuscleGroupSchema>;
 
 export interface MuscleMappingEntry {
   muscle_group_key: string;
-  contribution: 0.5 | 1.0; // Secondary | Primary
+  contribution: 0.5 | 1.0; // 0.5 = Secondary, 1.0 = Primary
 }
 
 export interface SubmitMuscleMappingRequest {

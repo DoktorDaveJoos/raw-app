@@ -2,6 +2,7 @@ import { apiClient } from './client';
 import type {
   WorkoutSessionSummary,
   WorkoutSessionDetails,
+  SessionExercise,
   SessionEvent,
   PaginatedSessionsResponse,
   SessionFilters,
@@ -183,6 +184,49 @@ function transformSessionEvent(raw: RawSessionEvent): SessionEvent {
   };
 }
 
+/**
+ * Transform raw session_exercises from the backend into the frontend shape.
+ * Handles nested exercise.name → flat exercise_name, weight string → number,
+ * and computes summary stats from the sets array when present.
+ */
+function transformSessionExercises(raw: any[]): SessionExercise[] {
+  return raw
+    .map((ex: any) => {
+      const sets = Array.isArray(ex.sets)
+        ? ex.sets.map((s: any, i: number) => ({
+            id: s.id ?? i,
+            set_number: s.set_number ?? i + 1,
+            weight_kg: s.weight_kg != null ? Number(s.weight_kg) : (s.weight != null ? Number(s.weight) : null),
+            reps: Number(s.reps),
+            rpe: s.rpe != null ? Number(s.rpe) : null,
+            rir: s.rir != null ? Number(s.rir) : null,
+            unit: s.unit ?? 'kg',
+            completed: s.completed ?? true,
+          }))
+        : undefined;
+
+      const setsCount = sets?.length ?? ex.sets_count ?? 0;
+      const repsCount = sets
+        ? sets.reduce((sum: number, s: any) => sum + s.reps, 0)
+        : (ex.reps_count ?? 0);
+      const volumeKg = sets
+        ? sets.reduce((sum: number, s: any) => sum + (s.weight_kg ?? 0) * s.reps, 0)
+        : (ex.volume_kg ?? null);
+
+      return {
+        id: ex.id,
+        exercise_id: ex.exercise_id,
+        exercise_name: ex.exercise_name ?? ex.exercise?.name ?? 'Unknown Exercise',
+        sort_order: ex.sort_order,
+        sets_count: setsCount,
+        reps_count: repsCount,
+        volume_kg: volumeKg,
+        sets,
+      };
+    })
+    .sort((a: SessionExercise, b: SessionExercise) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+}
+
 // ============================================
 // Sessions API Functions
 // ============================================
@@ -227,6 +271,7 @@ export async function getSession(sessionId: number): Promise<WorkoutSessionDetai
   const response = await apiClient.get<{ data: RawWorkoutSessionDetails }>(`/sessions/${sessionId}`);
   const raw = response.data.data as any;
   const rawEvents = raw.session_events ?? raw.sessionEvents ?? [];
+  const rawExercises = raw.session_exercises ?? raw.sessionExercises ?? [];
 
   return {
     ...raw,
@@ -236,6 +281,7 @@ export async function getSession(sessionId: number): Promise<WorkoutSessionDetai
     sets_count: raw.sets_count ?? raw.summary_json?.sets_count ?? 0,
     volume_kg: raw.volume_kg ?? raw.summary_json?.volume_kg ?? 0,
     session_events: rawEvents.map(transformSessionEvent),
+    session_exercises: transformSessionExercises(rawExercises),
   };
 }
 
